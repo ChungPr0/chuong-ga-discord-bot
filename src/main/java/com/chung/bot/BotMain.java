@@ -1,11 +1,20 @@
 package com.chung.bot;
 
+import com.chung.bot.commands.SlashCommandHandler;
 import com.chung.bot.config.Config;
+import com.chung.bot.features.MusicControlHandler;
 import com.chung.bot.features.RoleReactionHandler;
+import com.chung.bot.features.VoiceStateListener;
 import com.chung.bot.features.WelcomeHandler;
+import moe.kyokobot.libdave.DaveFactory;
+import moe.kyokobot.libdave.NativeDaveFactory;
+import moe.kyokobot.libdave.jda.LDJDADaveSessionFactory;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.audio.AudioModuleConfig;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +38,8 @@ public class BotMain {
                     GatewayIntent.GUILD_MEMBERS,
                     GatewayIntent.GUILD_MESSAGES,
                     GatewayIntent.MESSAGE_CONTENT,
-                    GatewayIntent.GUILD_MESSAGE_REACTIONS
+                    GatewayIntent.GUILD_MESSAGE_REACTIONS,
+                    GatewayIntent.GUILD_VOICE_STATES
             );
 
             // Cài đặt trạng thái hiển thị của bot
@@ -39,10 +49,41 @@ public class BotMain {
             // TODO: Thêm EventListener tại đây
             builder.addEventListeners(
                     new WelcomeHandler(),
-                    new RoleReactionHandler()
+                    new RoleReactionHandler(),
+                    new SlashCommandHandler(),
+                    new MusicControlHandler(),
+                    new VoiceStateListener()
             );
 
-            builder.build();
+            DaveFactory daveFactory = new NativeDaveFactory();
+
+            builder.setAudioModuleConfig(
+                    new AudioModuleConfig()
+                            .withDaveSessionFactory(new LDJDADaveSessionFactory(daveFactory))
+            );
+
+            net.dv8tion.jda.api.JDA jda = builder.build();
+            // BẮT BUỘC CHỜ JDA KẾT NỐI XONG MỚI CẬP NHẬT LỆNH
+            jda.awaitReady();
+
+            String guildId = Config.get("GUILD_ID");
+            net.dv8tion.jda.api.entities.Guild guild = jda.getGuildById(guildId);
+
+            if (guild != null) {
+                guild.updateCommands().addCommands(
+                        // Lệnh /play kèm gợi ý (Option) bắt buộc nhập
+                        Commands.slash("play", "Yêu cầu bot phát một bài nhạc")
+                                .addOption(OptionType.STRING, "bai-hat", "Nhập link YouTube hoặc tên bài hát", true),
+
+                        // Lệnh /skip
+                        Commands.slash("skip", "Bỏ qua bài hát hiện tại"),
+
+                        // Lệnh /stop
+                        Commands.slash("stop", "Dừng phát nhạc và dọn dẹp")
+                ).queue();
+                LOGGER.info("Đã cập nhật bộ lệnh Slash cho server {}", guild.getName());
+            }
+
             LOGGER.info("Bot đã khởi động thành công!");
 
         } catch (Exception e) {

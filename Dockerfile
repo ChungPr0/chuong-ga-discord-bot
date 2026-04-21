@@ -1,4 +1,4 @@
-# Sử dụng JDK 17 bản nhẹ
+# Sử dụng JDK 17
 FROM eclipse-temurin:17-jre-alpine
 
 # Set múi giờ cho chuẩn log
