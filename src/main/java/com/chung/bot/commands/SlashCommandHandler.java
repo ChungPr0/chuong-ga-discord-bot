@@ -57,7 +57,7 @@ public class SlashCommandHandler extends ListenerAdapter {
                 }
 
                 // Xử lý URL hoặc tìm kiếm
-                String query = Objects.requireNonNull(event.getOption("bai-hat")).getAsString();
+                String query = Objects.requireNonNull(event.getOption("query")).getAsString();
                 String trackUrl = query;
                 if (!query.startsWith("http")) {
                     trackUrl = "ytsearch:" + query;
@@ -70,13 +70,12 @@ public class SlashCommandHandler extends ListenerAdapter {
 
             case "leave":
                 // KIỂM TRA ĐIỀU KIỆN: User và Bot PHẢI ở chung kênh thoại
-                assert memberVoiceState != null;
-                if (!memberVoiceState.inAudioChannel() || !Objects.requireNonNull(botVoiceState).inAudioChannel() || !Objects.equals(memberVoiceState.getChannel(), botVoiceState.getChannel())) {
+                if (!Objects.requireNonNull(memberVoiceState).inAudioChannel() || !Objects.requireNonNull(botVoiceState).inAudioChannel() || !Objects.equals(memberVoiceState.getChannel(), botVoiceState.getChannel())) {
                     event.reply("Bạn phải ở chung kênh thoại với bot thì mới có thể đuổi nó đi được!").setEphemeral(true).queue();
                     return;
                 }
 
-                // Ngắt kết nối và gọi hàm dọn dẹp sạch sẽ (giống như khi bấm nút Leave)
+                // Ngắt kết nối và gọi hàm dọn dẹp sạch sẽ
                 event.getGuild().getAudioManager().closeAudioConnection();
                 GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
                 musicManager.scheduler.stopAndCleanup();
