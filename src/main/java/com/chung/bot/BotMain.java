@@ -66,20 +66,21 @@ public class BotMain {
             // BẮT BUỘC CHỜ JDA KẾT NỐI XONG MỚI CẬP NHẬT LỆNH
             jda.awaitReady();
 
+            // XÓA TOÀN BỘ GLOBAL COMMAND CŨ TRÊN TOÀN DISCORD
+            jda.updateCommands().queue();
+
             String guildId = Config.get("GUILD_ID");
             net.dv8tion.jda.api.entities.Guild guild = jda.getGuildById(guildId);
 
             if (guild != null) {
+                // XÓA VÀ CẬP NHẬT LẠI LỆNH CHO SERVER ĐỂ GHI ĐÈ LỆNH SERVER CŨ (Cập nhật ngay lập tức)
                 guild.updateCommands().addCommands(
                         // Lệnh /play kèm gợi ý (Option) bắt buộc nhập
                         Commands.slash("play", "Yêu cầu bot phát một bài nhạc")
-                                .addOption(OptionType.STRING, "bai-hat", "Nhập link YouTube hoặc tên bài hát", true),
+                                .addOption(OptionType.STRING, "query", "Nhập link YouTube hoặc tên bài hát", true),
 
-                        // Lệnh /skip
-                        Commands.slash("skip", "Bỏ qua bài hát hiện tại"),
-
-                        // Lệnh /stop
-                        Commands.slash("stop", "Dừng phát nhạc và dọn dẹp")
+                        // Lệnh /leave
+                        Commands.slash("leave", "Yêu cầu bot rời khỏi kênh thoại và dọn dẹp")
                 ).queue();
                 LOGGER.info("Đã cập nhật bộ lệnh Slash cho server {}", guild.getName());
             }
