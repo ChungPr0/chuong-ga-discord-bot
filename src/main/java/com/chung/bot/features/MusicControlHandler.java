@@ -42,12 +42,14 @@ public class MusicControlHandler extends ListenerAdapter {
         boolean isLooping = scheduler.isRepeating;
         boolean noHistory = scheduler.currentIndex <= 0;
         boolean noNext = scheduler.currentIndex >= scheduler.playlist.size() - 1;
+        boolean noShuffle = (scheduler.playlist.size() - scheduler.currentIndex) <= 2;
 
         Button backBtn = noHistory ? Button.secondary("music_back", "◁").asDisabled() : Button.secondary("music_back", "◁");
         Button pauseBtn = isPaused ? Button.danger("music_pause", "▶") : Button.secondary("music_pause", "❚❚");
         Button skipBtn = noNext ? Button.secondary("music_skip", "▷").asDisabled() : Button.secondary("music_skip", "▷");
         Button loopBtn = isLooping ? Button.primary("music_loop", "↻") : Button.secondary("music_loop", "↻");
         Button listBtn = Button.secondary("music_queue_open", "☰");
+        Button shuffleBtn = noShuffle ? Button.secondary("music_shuffle", "⇄").asDisabled() : Button.secondary("music_shuffle", "⇄");
         Button leaveBtn = Button.danger("music_leave", "▢");
 
         long duration = track.getDuration() / 1000;
@@ -64,7 +66,7 @@ public class MusicControlHandler extends ListenerAdapter {
                 .setColor(Color.decode("#2ecc71"));
 
         ActionRow row1 = ActionRow.of(backBtn, pauseBtn, skipBtn, loopBtn, listBtn);
-        ActionRow row2 = ActionRow.of(leaveBtn);
+        ActionRow row2 = ActionRow.of(shuffleBtn, leaveBtn);
 
         channel.sendMessageEmbeds(embed.build())
                 .setComponents(row1, row2)
@@ -76,15 +78,17 @@ public class MusicControlHandler extends ListenerAdapter {
         boolean isLooping = scheduler.isRepeating;
         boolean noHistory = scheduler.currentIndex <= 0;
         boolean noNext = scheduler.currentIndex >= scheduler.playlist.size() - 1;
+        boolean noShuffle = (scheduler.playlist.size() - scheduler.currentIndex) <= 2;
 
         Button backBtn = noHistory ? Button.secondary("music_back", "◁").asDisabled() : Button.secondary("music_back", "◁");
         Button pauseBtn = isPaused ? Button.danger("music_pause", "▶") : Button.secondary("music_pause", "❚❚");
         Button skipBtn = noNext ? Button.secondary("music_skip", "▷").asDisabled() : Button.secondary("music_skip", "▷");
         Button loopBtn = isLooping ? Button.primary("music_loop", "↻") : Button.secondary("music_loop", "↻");
         Button listBtn = Button.secondary("music_queue_open", "☰");
+        Button shuffleBtn = noShuffle ? Button.secondary("music_shuffle", "⇄").asDisabled() : Button.secondary("music_shuffle", "⇄");
         Button leaveBtn = Button.danger("music_leave", "▢");
 
-        event.editComponents(ActionRow.of(backBtn, pauseBtn, skipBtn, loopBtn, listBtn), ActionRow.of(leaveBtn)).queue();
+        event.editComponents(ActionRow.of(backBtn, pauseBtn, skipBtn, loopBtn, listBtn), ActionRow.of(shuffleBtn, leaveBtn)).queue();
     }
 
 
@@ -123,6 +127,10 @@ public class MusicControlHandler extends ListenerAdapter {
                 event.deferEdit().queue();
                 Objects.requireNonNull(event.getGuild()).getAudioManager().closeAudioConnection();
                 scheduler.stopAndCleanup();
+                break;
+            case "music_shuffle":
+                scheduler.shuffleQueue();
+                event.reply("Đã xáo trộn danh sách phát!").setEphemeral(true).queue();
                 break;
             case "music_queue_open":
                 event.deferEdit().queue();

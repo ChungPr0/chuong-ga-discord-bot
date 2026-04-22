@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class PlayerManager {
@@ -67,10 +68,20 @@ public class PlayerManager {
 
             @Override
             public void playlistLoaded(AudioPlaylist playlist) {
-                AudioTrack track = playlist.getTracks().get(0);
+                List<AudioTrack> tracks = playlist.getTracks();
+                if (tracks.isEmpty()) return;
+
                 musicManager.scheduler.setChannel(channel);
-                musicManager.scheduler.queue(track);
-                channel.sendMessage("Đã tìm thấy và thêm: **" + track.getInfo().title + "**").queue();
+
+                if (playlist.isSearchResult()) {
+                    // Nếu là kết quả tìm kiếm (ví dụ "ytsearch: bài hát"), chỉ lấy bài đầu tiên
+                    AudioTrack track = tracks.get(0);
+                    musicManager.scheduler.queue(track);
+                    channel.sendMessage("Đã tìm kiếm và thêm: **" + track.getInfo().title + "**").queue();
+                } else {
+                    musicManager.scheduler.queuePlaylist(tracks);
+                    channel.sendMessage("Đã thêm **" + tracks.size() + "** bài hát từ playlist: **" + playlist.getName() + "** vào hàng đợi.").queue();
+                }
             }
 
             @Override

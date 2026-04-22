@@ -8,6 +8,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class TrackScheduler extends AudioEventAdapter {
@@ -88,6 +89,14 @@ public class TrackScheduler extends AudioEventAdapter {
         deleteQueueMessage();
     }
 
+    public void shuffleQueue() {
+        if (playlist.size() > currentIndex + 1) {
+            List<AudioTrack> subList = playlist.subList(currentIndex + 1, playlist.size());
+            Collections.shuffle(subList);
+            deleteQueueMessage();
+        }
+    }
+
     // ==========================================
     // CÁC HÀM XỬ LÝ NHẠC CƠ BẢN
     // ==========================================
@@ -97,16 +106,33 @@ public class TrackScheduler extends AudioEventAdapter {
 
         if (player.getPlayingTrack() == null) {
             player.startTrack(playlist.get(currentIndex).makeClone(), false);
+        } else {
+            if (lastMessageId != 0L && currentChannel != null) {
+                AudioTrack playingTrack = player.getPlayingTrack();
+                if (playingTrack != null) {
+                    MusicControlHandler.sendNewControlPanel(this, currentChannel, playingTrack);
+                }
+            }
+        }
+        
+        deleteQueueMessage();
+    }
+
+    public void queuePlaylist(List<AudioTrack> tracks) {
+        playlist.addAll(tracks);
+
+        if (player.getPlayingTrack() == null) {
+            player.startTrack(playlist.get(currentIndex).makeClone(), false);
+        } else {
+            if (lastMessageId != 0L && currentChannel != null) {
+                AudioTrack playingTrack = player.getPlayingTrack();
+                if (playingTrack != null) {
+                    MusicControlHandler.sendNewControlPanel(this, currentChannel, playingTrack);
+                }
+            }
         }
 
         deleteQueueMessage();
-
-        if (lastMessageId != 0L && currentChannel != null) {
-            AudioTrack playingTrack = player.getPlayingTrack();
-            if (playingTrack != null) {
-                MusicControlHandler.sendNewControlPanel(this, currentChannel, playingTrack);
-            }
-        }
     }
 
     public void nextTrack() {
