@@ -31,8 +31,7 @@ public class PlayerManager {
 
         // Chặn YouTube cũ của Lavaplayer để không đụng độ
         AudioSourceManagers.registerRemoteSources(
-                this.audioPlayerManager,
-                com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager.class
+                this.audioPlayerManager
         );
 
         // Đăng ký nguồn file local

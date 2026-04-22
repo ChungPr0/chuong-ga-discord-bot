@@ -32,21 +32,21 @@ public class SlashCommandHandler extends ListenerAdapter {
 
         // Lấy trạng thái Voice của người dùng và của Bot
         Member member = event.getMember();
-        GuildVoiceState memberVoiceState = member.getVoiceState();
-        GuildVoiceState botVoiceState = event.getGuild().getSelfMember().getVoiceState();
+        GuildVoiceState memberVoiceState = Objects.requireNonNull(member).getVoiceState();
+        GuildVoiceState botVoiceState = Objects.requireNonNull(event.getGuild()).getSelfMember().getVoiceState();
 
         // BẮT ĐẦU ĐỊNH TUYẾN LỆNH
         switch (commandName) {
             case "play":
                 // Kiểm tra người dùng có ở trong Voice Channel không
-                if (!memberVoiceState.inAudioChannel()) {
+                if (!Objects.requireNonNull(memberVoiceState).inAudioChannel()) {
                     event.reply("Bạn phải vào một kênh thoại trước mới gọi bot được chứ!").setEphemeral(true).queue();
                     return;
                 }
 
                 // KIỂM TRA BOT CÓ ĐANG PHÁT Ở KÊNH KHÁC KHÔNG
-                if (botVoiceState.inAudioChannel() && !botVoiceState.getChannel().equals(memberVoiceState.getChannel())) {
-                    event.reply("Bot đang bận " + botVoiceState.getChannel().getAsMention() + " rồi. Hãy vào chung kênh với bot để thêm nhạc!").setEphemeral(true).queue();
+                if (Objects.requireNonNull(botVoiceState).inAudioChannel() && !Objects.equals(botVoiceState.getChannel(), memberVoiceState.getChannel())) {
+                    event.reply("Bot đang bận " + Objects.requireNonNull(botVoiceState.getChannel()).getAsMention() + " rồi. Hãy vào chung kênh với bot để thêm nhạc!").setEphemeral(true).queue();
                     return;
                 }
 
