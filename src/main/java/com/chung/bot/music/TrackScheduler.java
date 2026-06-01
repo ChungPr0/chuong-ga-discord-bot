@@ -3,6 +3,7 @@ package com.chung.bot.music;
 import com.chung.bot.features.MusicControlHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
+import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
@@ -194,5 +195,21 @@ public class TrackScheduler extends AudioEventAdapter {
                 nextTrack();
             }
         }
+    }
+
+    @Override
+    public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
+        if (currentChannel != null) {
+            currentChannel.sendMessage("Lỗi khi phát bài **" + track.getInfo().title + "**: " + exception.getMessage()).queue();
+        }
+        nextTrack();
+    }
+
+    @Override
+    public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
+        if (currentChannel != null) {
+            currentChannel.sendMessage("Bài hát **" + track.getInfo().title + "** bị treo. Đang chuyển bài tiếp theo...").queue();
+        }
+        nextTrack();
     }
 }

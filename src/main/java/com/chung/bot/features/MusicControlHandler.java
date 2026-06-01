@@ -57,12 +57,17 @@ public class MusicControlHandler extends ListenerAdapter {
 
         int currentIndex = scheduler.currentIndex + 1;
         int totalTracks = scheduler.playlist.size();
-        String titleText = String.format(":musical_note: Đang phát bài hát | Bài số: %d/%d", currentIndex, totalTracks);
+        String titleText = String.format("Đang phát bài hát | Bài số: %d/%d", currentIndex, totalTracks);
+
+        String thumbnail = "https://cdn.pixabay.com/photo/2017/04/19/10/24/vinyl-2241789_1280.png";
+        if (track.getInfo().uri != null && (track.getInfo().uri.contains("youtube.com") || track.getInfo().uri.contains("youtu.be"))) {
+            thumbnail = "https://img.youtube.com/vi/" + track.getIdentifier() + "/hqdefault.jpg";
+        }
 
         EmbedBuilder embed = new EmbedBuilder()
                 .setTitle(titleText)
                 .setDescription("**" + track.getInfo().title + "**\n`" + timeStr + "`")
-                .setThumbnail("https://cdn.pixabay.com/photo/2017/04/19/10/24/vinyl-2241789_1280.png")
+                .setThumbnail(thumbnail)
                 .setColor(Color.decode("#2ecc71"));
 
         ActionRow row1 = ActionRow.of(backBtn, pauseBtn, skipBtn, loopBtn, listBtn);

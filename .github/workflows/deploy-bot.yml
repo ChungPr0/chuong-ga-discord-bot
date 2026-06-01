@@ -8,9 +8,9 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -38,24 +38,33 @@ jobs:
           target: "/opt/discord-bot"
 
       - name: Docker Build and Run
-        uses: appleboy/ssh-action@v0.1.7
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          GUILD_ID: ${{ secrets.GUILD_ID }}
+          WELCOME_CHANNEL_ID: ${{ secrets.WELCOME_CHANNEL_ID }}
+          ROLES_CHANNEL_ID: ${{ secrets.ROLES_CHANNEL_ID }}
+          MUSIC_CHANNEL_ID: ${{ secrets.MUSIC_CHANNEL_ID }}
+          INVITE_LINK: ${{ secrets.INVITE_LINK }}
+          REACTION_MESSAGE_ID: ${{ secrets.REACTION_MESSAGE_ID }}
+          CHICKEN_ROLE_ID: ${{ secrets.CHICKEN_ROLE_ID }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT }}
+          envs: DISCORD_TOKEN,GUILD_ID,WELCOME_CHANNEL_ID,ROLES_CHANNEL_ID,MUSIC_CHANNEL_ID,INVITE_LINK,REACTION_MESSAGE_ID,CHICKEN_ROLE_ID
           script: |
             cd /opt/discord-bot
             
-            # TỰ ĐỘNG TẠO FILE .env TỪ GITHUB SECRETS
-            echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" > .env
-            echo "GUILD_ID=${{ secrets.GUILD_ID }}" >> .env
-            echo "WELCOME_CHANNEL_ID=${{ secrets.WELCOME_CHANNEL_ID }}" >> .env
-            echo "ROLES_CHANNEL_ID=${{ secrets.ROLES_CHANNEL_ID }}" >> .env
-            echo "MUSIC_CHANNEL_ID=${{ secrets.MUSIC_CHANNEL_ID }}" >> .env
-            echo "INVITE_LINK=${{ secrets.INVITE_LINK }}" >> .env
-            echo "REACTION_MESSAGE_ID=${{ secrets.REACTION_MESSAGE_ID }}" >> .env
-            echo "CHICKEN_ROLE_ID=${{ secrets.CHICKEN_ROLE_ID }}" >> .env
+            echo "DISCORD_TOKEN=$DISCORD_TOKEN" > .env
+            echo "GUILD_ID=$GUILD_ID" >> .env
+            echo "WELCOME_CHANNEL_ID=$WELCOME_CHANNEL_ID" >> .env
+            echo "ROLES_CHANNEL_ID=$ROLES_CHANNEL_ID" >> .env
+            echo "MUSIC_CHANNEL_ID=$MUSIC_CHANNEL_ID" >> .env
+            echo "INVITE_LINK=$INVITE_LINK" >> .env
+            echo "REACTION_MESSAGE_ID=$REACTION_MESSAGE_ID" >> .env
+            echo "CHICKEN_ROLE_ID=$CHICKEN_ROLE_ID" >> .env
 
             sudo docker build -t discord-bot-image .
             sudo docker rm -f discord-bot-container || true
