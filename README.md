@@ -1,11 +1,6 @@
 # Chuồng Gà Discord Bot
 
 <p align="center">
-  <img src="assets/logo.png" alt="Chuồng Gà Bot Logo" width="200px" style="border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3);"/>
-</p>
-
-<p align="center">
-  <a href="https://github.com/ChungPr0/chuong-ga-discord-bot"><img src="https://img.shields.io/github/v/release/ChungPr0/chuong-ga-discord-bot?style=for-the-badge&color=orange" alt="Release"/></a>
   <a href="https://jdk.java.net/17/"><img src="https://img.shields.io/badge/Java-17-blue?style=for-the-badge&logo=openjdk" alt="Java 17"/></a>
   <a href="https://github.com/discord-jda/JDA"><img src="https://img.shields.io/badge/JDA-6.4.1-red?style=for-the-badge&logo=discord" alt="JDA"/></a>
   <a href="https://github.com/appleboy/ssh-action"><img src="https://img.shields.io/badge/CI%2FCD-GitHub_Actions-darkgreen?style=for-the-badge&logo=githubactions" alt="CI/CD"/></a>
@@ -73,6 +68,7 @@ GUILD_ID=YOUR_GUILD_ID
 WELCOME_CHANNEL_ID=YOUR_WELCOME_CHANNEL_ID
 ROLES_CHANNEL_ID=YOUR_ROLES_CHANNEL_ID
 MUSIC_CHANNEL_ID=YOUR_MUSIC_CHANNEL_ID
+CREATE_VOICE_CHANNEL_ID=YOUR_CREATE_VOICE_CHANNEL_ID
 
 # ID tin nhắn để kiểm duyệt (Thả emoji ✅ để nhận role)
 REACTION_MESSAGE_ID=YOUR_REACTION_MESSAGE_ID
@@ -147,4 +143,4 @@ Quy trình triển khai tự động lên VPS được định nghĩa tại tệ
 Để CI/CD hoạt động, bạn cần cấu hình các biến sau trong phần **Settings > Secrets and variables > Actions** của Repository:
 * `TAILSCALE_AUTHKEY`: Khóa xác thực mạng Tailscale.
 * `VPS_HOST`, `VPS_USERNAME`, `VPS_PASSWORD`, `VPS_PORT`: Thông tin kết nối SSH tới máy chủ VPS.
-* `DISCORD_TOKEN`, `GUILD_ID`, `WELCOME_CHANNEL_ID`, `ROLES_CHANNEL_ID`, `MUSIC_CHANNEL_ID`, `INVITE_LINK`, `REACTION_MESSAGE_ID`, `CHICKEN_ROLE_ID`: Các biến môi trường để sinh tệp `.env` trên VPS.
+* `DISCORD_TOKEN`, `GUILD_ID`, `WELCOME_CHANNEL_ID`, `ROLES_CHANNEL_ID`, `MUSIC_CHANNEL_ID`, `CREATE_VOICE_CHANNEL_ID`, `INVITE_LINK`, `REACTION_MESSAGE_ID`, `CHICKEN_ROLE_ID`: Các biến môi trường để sinh tệp `.env` trên VPS.

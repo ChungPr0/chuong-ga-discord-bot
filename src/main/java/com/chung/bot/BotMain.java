@@ -2,6 +2,7 @@ package com.chung.bot;
 
 import com.chung.bot.commands.SlashCommandHandler;
 import com.chung.bot.config.Config;
+import com.chung.bot.features.JoinToCreateHandler;
 import com.chung.bot.features.MusicControlHandler;
 import com.chung.bot.features.RoleReactionHandler;
 import com.chung.bot.features.VoiceStateListener;
@@ -52,7 +53,8 @@ public class BotMain {
                     new RoleReactionHandler(),
                     new SlashCommandHandler(),
                     new MusicControlHandler(),
-                    new VoiceStateListener()
+                    new VoiceStateListener(),
+                    new JoinToCreateHandler()
             );
 
             DaveFactory daveFactory = new NativeDaveFactory();
