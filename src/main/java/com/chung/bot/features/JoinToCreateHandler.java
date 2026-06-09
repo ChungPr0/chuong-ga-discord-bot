@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.Color;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -37,6 +38,8 @@ public class JoinToCreateHandler extends ListenerAdapter {
     private final ConcurrentHashMap<String, String> channelOwners = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<String, Long> panelMessages = new ConcurrentHashMap<>();
+
+    private final Set<Long> processingUsers = ConcurrentHashMap.newKeySet();
 
     private final String triggerChannelId = Config.get("CREATE_VOICE_CHANNEL_ID");
     private final String chickenRoleId = Config.get("CHICKEN_ROLE_ID");
@@ -66,6 +69,13 @@ public class JoinToCreateHandler extends ListenerAdapter {
         VoiceChannel triggerChannel = guild.getVoiceChannelById(triggerChannelId);
         if (triggerChannel == null) return;
 
+        long userId = member.getIdLong();
+        if (processingUsers.contains(userId)) {
+            LOGGER.info("[JTC] Người dùng {} đang trong quá trình tạo kênh/di chuyển, bỏ qua event", member.getEffectiveName());
+            return;
+        }
+        processingUsers.add(userId);
+
         Category category = triggerChannel.getParentCategory();
         String channelName = "┗ " + member.getEffectiveName();
 
@@ -78,9 +88,19 @@ public class JoinToCreateHandler extends ListenerAdapter {
                     LOGGER.info("[JTC] Tạo kênh '{}' cho {}", channelName, member.getEffectiveName());
 
                     guild.moveVoiceMember(member, newChannel).queue(
-                            success -> sendControlPanel(newChannel, member),
-                            error -> LOGGER.error("[JTC] Không thể move {}: {}", member.getEffectiveName(), error.getMessage())
+                            success -> {
+                                sendControlPanel(newChannel, member);
+                                processingUsers.remove(userId);
+                            },
+                            error -> {
+                                LOGGER.error("[JTC] Không thể di chuyển thành viên {}: {}", member.getEffectiveName(), error.getMessage());
+                                processingUsers.remove(userId);
+                            }
                     );
+                },
+                error -> {
+                    LOGGER.error("[JTC] Không thể tạo kênh '{}' cho {}: {}", channelName, member.getEffectiveName(), error.getMessage());
+                    processingUsers.remove(userId);
                 });
     }
 
