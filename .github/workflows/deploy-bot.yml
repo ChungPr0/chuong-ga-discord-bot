@@ -49,12 +49,13 @@ jobs:
           INVITE_LINK: ${{ secrets.INVITE_LINK }}
           REACTION_MESSAGE_ID: ${{ secrets.REACTION_MESSAGE_ID }}
           CHICKEN_ROLE_ID: ${{ secrets.CHICKEN_ROLE_ID }}
+          BOT_LOG_CHANNEL_ID: ${{ secrets.BOT_LOG_CHANNEL_ID }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT }}
-          envs: DISCORD_TOKEN,GUILD_ID,WELCOME_CHANNEL_ID,ROLES_CHANNEL_ID,MUSIC_CHANNEL_ID,CREATE_VOICE_CHANNEL_ID,INVITE_LINK,REACTION_MESSAGE_ID,CHICKEN_ROLE_ID
+          envs: DISCORD_TOKEN,GUILD_ID,WELCOME_CHANNEL_ID,ROLES_CHANNEL_ID,MUSIC_CHANNEL_ID,CREATE_VOICE_CHANNEL_ID,INVITE_LINK,REACTION_MESSAGE_ID,CHICKEN_ROLE_ID,BOT_LOG_CHANNEL_ID
           script: |
             cd /opt/discord-bot
             
@@ -67,6 +68,7 @@ jobs:
             echo "INVITE_LINK=$INVITE_LINK" >> .env
             echo "REACTION_MESSAGE_ID=$REACTION_MESSAGE_ID" >> .env
             echo "CHICKEN_ROLE_ID=$CHICKEN_ROLE_ID" >> .env
+            echo "BOT_LOG_CHANNEL_ID=$BOT_LOG_CHANNEL_ID" >> .env
 
             sudo docker build -t discord-bot-image .
             sudo docker rm -f discord-bot-container || true

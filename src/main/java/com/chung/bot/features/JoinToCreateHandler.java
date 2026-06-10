@@ -24,6 +24,8 @@ import net.dv8tion.jda.api.modals.Modal;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.chung.bot.log.BotLogger;
+import java.time.Instant;
 
 import java.awt.Color;
 import java.util.List;
@@ -94,12 +96,14 @@ public class JoinToCreateHandler extends ListenerAdapter {
                             },
                             error -> {
                                 LOGGER.error("[JTC] Không thể di chuyển thành viên {}: {}", member.getEffectiveName(), error.getMessage());
+                                BotLogger.error("Lỗi Di Chuyển Thành Viên", "Không thể di chuyển thành viên " + member.getEffectiveName() + " vào kênh thoại mới: " + newChannel.getName(), error);
                                 processingUsers.remove(userId);
                             }
                     );
                 },
                 error -> {
                     LOGGER.error("[JTC] Không thể tạo kênh '{}' cho {}: {}", channelName, member.getEffectiveName(), error.getMessage());
+                    BotLogger.error("Lỗi Tạo Kênh Thoại JTC", "Không thể tạo kênh '" + channelName + "' cho " + member.getEffectiveName(), error);
                     processingUsers.remove(userId);
                 });
     }
@@ -247,9 +251,17 @@ public class JoinToCreateHandler extends ListenerAdapter {
         if (chickenRole != null) {
             vc.upsertPermissionOverride(chickenRole)
                     .deny(Permission.VOICE_CONNECT)
-                    .queue(success -> updatePanelButtons(event, vc, guild));
+                    .queue(success -> {
+                        updatePanelButtons(event, vc, guild);
+                        String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 🔒 Khóa kênh\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                                event.getMember().getAsMention(), vc.getName(), Instant.now().getEpochSecond());
+                        BotLogger.info("Control Panel - Khóa phòng", logMsg);
+                    });
         } else {
             updatePanelButtons(event, vc, guild);
+            String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 🔒 Khóa kênh\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                    event.getMember().getAsMention(), vc.getName(), Instant.now().getEpochSecond());
+            BotLogger.info("Control Panel - Khóa phòng", logMsg);
         }
     }
 
@@ -260,9 +272,17 @@ public class JoinToCreateHandler extends ListenerAdapter {
         if (chickenRole != null) {
             vc.upsertPermissionOverride(chickenRole)
                     .clear(Permission.VOICE_CONNECT)
-                    .queue(success -> updatePanelButtons(event, vc, guild));
+                    .queue(success -> {
+                        updatePanelButtons(event, vc, guild);
+                        String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 🔓 Mở kênh\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                                event.getMember().getAsMention(), vc.getName(), Instant.now().getEpochSecond());
+                        BotLogger.info("Control Panel - Mở phòng", logMsg);
+                    });
         } else {
             updatePanelButtons(event, vc, guild);
+            String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 🔓 Mở kênh\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                    event.getMember().getAsMention(), vc.getName(), Instant.now().getEpochSecond());
+            BotLogger.info("Control Panel - Mở phòng", logMsg);
         }
     }
 
@@ -273,9 +293,17 @@ public class JoinToCreateHandler extends ListenerAdapter {
         if (chickenRole != null) {
             vc.upsertPermissionOverride(chickenRole)
                     .deny(Permission.VIEW_CHANNEL)
-                    .queue(success -> updatePanelButtons(event, vc, guild));
+                    .queue(success -> {
+                        updatePanelButtons(event, vc, guild);
+                        String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 👁️ Ẩn kênh\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                                event.getMember().getAsMention(), vc.getName(), Instant.now().getEpochSecond());
+                        BotLogger.info("Control Panel - Ẩn phòng", logMsg);
+                    });
         } else {
             updatePanelButtons(event, vc, guild);
+            String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 👁️ Ẩn kênh\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                    event.getMember().getAsMention(), vc.getName(), Instant.now().getEpochSecond());
+            BotLogger.info("Control Panel - Ẩn phòng", logMsg);
         }
     }
 
@@ -286,9 +314,17 @@ public class JoinToCreateHandler extends ListenerAdapter {
         if (chickenRole != null) {
             vc.upsertPermissionOverride(chickenRole)
                     .clear(Permission.VIEW_CHANNEL)
-                    .queue(success -> updatePanelButtons(event, vc, guild));
+                    .queue(success -> {
+                        updatePanelButtons(event, vc, guild);
+                        String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 👁️ Hiện kênh\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                                event.getMember().getAsMention(), vc.getName(), Instant.now().getEpochSecond());
+                        BotLogger.info("Control Panel - Hiện phòng", logMsg);
+                    });
         } else {
             updatePanelButtons(event, vc, guild);
+            String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 👁️ Hiện kênh\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                    event.getMember().getAsMention(), vc.getName(), Instant.now().getEpochSecond());
+            BotLogger.info("Control Panel - Hiện phòng", logMsg);
         }
     }
 
@@ -421,8 +457,14 @@ public class JoinToCreateHandler extends ListenerAdapter {
                                 ? "Đã **bỏ giới hạn** số người trong kênh!"
                                 : "Đã đặt giới hạn kênh thành **" + limit + " người**!";
                         event.reply(msg).setEphemeral(true).queue();
+                        String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 👥 Giới hạn số người -> `%s`\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                                event.getMember().getAsMention(), limit == 0 ? "Không giới hạn" : limit + " người", vc.getName(), Instant.now().getEpochSecond());
+                        BotLogger.info("Control Panel - Giới hạn kênh", logMsg);
                     },
-                    error -> event.reply("Lỗi khi đặt giới hạn!").setEphemeral(true).queue()
+                    error -> {
+                        event.reply("Lỗi khi đặt giới hạn!").setEphemeral(true).queue();
+                        BotLogger.error("Lỗi Đặt Giới Hạn", "Không thể đặt giới hạn kênh thành " + limit + " cho phòng " + vc.getName(), error);
+                    }
             );
         } catch (NumberFormatException e) {
             event.reply("Giá trị không hợp lệ! Vui lòng nhập một số nguyên.").setEphemeral(true).queue();
@@ -435,11 +477,20 @@ public class JoinToCreateHandler extends ListenerAdapter {
             event.reply("Tên kênh không được để trống!").setEphemeral(true).queue();
             return;
         }
+        String oldName = vc.getName();
         String formattedName = "┗ " + newName;
         vc.getManager().setName(formattedName).queue(
-                success -> event.reply("Đã đổi tên phòng thành **" + formattedName + "**!")
-                        .setEphemeral(true).queue(),
-                error -> event.reply("Lỗi khi đổi tên phòng!").setEphemeral(true).queue()
+                success -> {
+                    event.reply("Đã đổi tên phòng thành **" + formattedName + "**!")
+                            .setEphemeral(true).queue();
+                    String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** ✏️ Đổi tên\n• **Tên cũ:** `%s`\n• **Tên mới:** `%s`\n• **Thời gian:** <t:%d:F>",
+                            event.getMember().getAsMention(), oldName, formattedName, Instant.now().getEpochSecond());
+                    BotLogger.info("Control Panel - Đổi tên", logMsg);
+                },
+                error -> {
+                    event.reply("Lỗi khi đổi tên phòng!").setEphemeral(true).queue();
+                    BotLogger.error("Lỗi Đổi Tên Phòng", "Không thể đổi tên phòng thành " + formattedName + " cho phòng " + oldName, error);
+                }
         );
     }
 
@@ -481,10 +532,20 @@ public class JoinToCreateHandler extends ListenerAdapter {
             event.reply("Không tìm thấy người dùng này!").setEphemeral(true).queue();
             return;
         }
+        VoiceChannel vc = guild.getVoiceChannelById(channelId);
+        String channelName = vc != null ? vc.getName() : channelId;
         guild.kickVoiceMember(target).queue(
-                success -> event.reply("Đã kick **" + target.getEffectiveName() + "** khỏi phòng!")
-                        .setEphemeral(true).queue(),
-                error -> event.reply("Không thể kick người này!").setEphemeral(true).queue()
+                success -> {
+                    event.reply("Đã kick **" + target.getEffectiveName() + "** khỏi phòng!")
+                            .setEphemeral(true).queue();
+                    String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 👢 Kick\n• **Bị kick:** %s\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                            owner.getAsMention(), target.getAsMention(), channelName, Instant.now().getEpochSecond());
+                    BotLogger.info("Control Panel - Kick thành viên", logMsg);
+                },
+                error -> {
+                    event.reply("Không thể kick người này!").setEphemeral(true).queue();
+                    BotLogger.error("Lỗi Kick Thành Viên", "Không thể kick " + target.getEffectiveName() + " khỏi phòng " + channelName, error);
+                }
         );
     }
 
@@ -515,6 +576,11 @@ public class JoinToCreateHandler extends ListenerAdapter {
 
         event.reply("Đã chuyển quyền chủ phòng cho **" + target.getEffectiveName() + "**! 👑")
                 .setEphemeral(true).queue();
+
+        String channelName = vc != null ? vc.getName() : channelId;
+        String logMsg = String.format("• **Người thực hiện:** %s\n• **Lệnh thoại/Lệnh nút:** 👑 Chuyển quyền\n• **Chuyển quyền cho:** %s\n• **Phòng thoại:** `%s`\n• **Thời gian:** <t:%d:F>",
+                owner.getAsMention(), target.getAsMention(), channelName, Instant.now().getEpochSecond());
+        BotLogger.info("Control Panel - Chuyển quyền", logMsg);
     }
 
     // =========================================================================

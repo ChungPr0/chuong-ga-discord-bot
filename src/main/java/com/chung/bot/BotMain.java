@@ -19,6 +19,7 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.chung.bot.log.BotLogger;
 
 public class BotMain {
     private static final Logger LOGGER = LoggerFactory.getLogger(BotMain.class);
@@ -67,6 +68,9 @@ public class BotMain {
             net.dv8tion.jda.api.JDA jda = builder.build();
             // BẮT BUỘC CHỜ JDA KẾT NỐI XONG MỚI CẬP NHẬT LỆNH
             jda.awaitReady();
+
+            // Khởi tạo logger Discord
+            BotLogger.init(jda);
 
             // XÓA TOÀN BỘ GLOBAL COMMAND CŨ TRÊN TOÀN DISCORD
             jda.updateCommands().queue();

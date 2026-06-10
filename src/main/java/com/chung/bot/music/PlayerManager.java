@@ -92,6 +92,9 @@ public class PlayerManager {
             @Override
             public void loadFailed(FriendlyException exception) {
                 channel.sendMessage("Có lỗi xảy ra khi tải nhạc: " + exception.getMessage()).queue();
+                com.chung.bot.log.BotLogger.error("Lỗi Tải Nhạc (Music Load Failed)", 
+                        "Không thể tải nhạc từ đường dẫn hoặc từ khóa: `" + trackUrl + "` ở Guild: " + (guild != null ? guild.getName() : "Không rõ"), 
+                        exception);
             }
         });
     }
