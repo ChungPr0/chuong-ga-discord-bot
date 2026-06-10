@@ -75,6 +75,7 @@ jobs:
             sudo docker run -d \
               --name discord-bot-container \
               --env-file .env \
+              -v /opt/discord-bot:/opt/discord-bot \
               --restart unless-stopped \
               discord-bot-image
             

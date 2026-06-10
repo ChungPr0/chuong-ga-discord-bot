@@ -15,8 +15,14 @@ import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class PlayerManager {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PlayerManager.class);
     private static PlayerManager INSTANCE;
     private final Map<Long, GuildMusicManager> musicManagers;
     private final AudioPlayerManager audioPlayerManager;
@@ -91,11 +97,70 @@ public class PlayerManager {
 
             @Override
             public void loadFailed(FriendlyException exception) {
-                channel.sendMessage("Có lỗi xảy ra khi tải nhạc: " + exception.getMessage()).queue();
                 com.chung.bot.log.BotLogger.error("Lỗi Tải Nhạc (Music Load Failed)", 
                         "Không thể tải nhạc từ đường dẫn hoặc từ khóa: `" + trackUrl + "` ở Guild: " + (guild != null ? guild.getName() : "Không rõ"), 
                         exception);
+                checkAndTriggerWarpRescue(exception);
             }
         });
+    }
+
+    private void checkAndTriggerWarpRescue(FriendlyException exception) {
+        if (exception == null) return;
+        
+        String msg = exception.getMessage();
+        Throwable cause = exception.getCause();
+        boolean isNetworkError = false;
+        
+        // 1. Kiểm tra qua tin nhắn exception
+        if (msg != null) {
+            String lowerMsg = msg.toLowerCase();
+            if (lowerMsg.contains("read timed out") || 
+                lowerMsg.contains("all clients failed to load") || 
+                lowerMsg.contains("connectexception") || 
+                lowerMsg.contains("timeoutexception")) {
+                isNetworkError = true;
+            }
+        }
+        
+        // 2. Kiểm tra nguyên nhân gốc (cause) nếu có
+        if (!isNetworkError && cause != null) {
+            String causeMsg = cause.getMessage();
+            if (causeMsg != null) {
+                String lowerCause = causeMsg.toLowerCase();
+                if (lowerCause.contains("read timed out") || 
+                    lowerCause.contains("all clients failed to load") || 
+                    lowerCause.contains("connectexception") || 
+                    lowerCause.contains("timeoutexception")) {
+                    isNetworkError = true;
+                }
+            }
+            String causeClassName = cause.getClass().getSimpleName();
+            if (causeClassName.contains("ConnectException") || causeClassName.contains("TimeoutException")) {
+                isNetworkError = true;
+            }
+        }
+        
+        // 3. Nếu đúng lỗi mạng WARP, tạo file tín hiệu (Flag File) cứu hộ
+        if (isNetworkError) {
+            try {
+                Path flagPath = Paths.get("/opt/discord-bot/warp_error.flag");
+                
+                // Đảm bảo thư mục cha tồn tại
+                if (!Files.exists(flagPath.getParent())) {
+                    Files.createDirectories(flagPath.getParent());
+                }
+                
+                if (!Files.exists(flagPath)) {
+                    Files.createFile(flagPath);
+                    LOGGER.warn("Đã tạo file cứu hộ WARP thành công tại: {}", flagPath);
+                }
+                
+                com.chung.bot.log.BotLogger.warn("HỆ THỐNG CỨU HỘ", 
+                        "Phát hiện lỗi mạng WARP. Đang gửi tín hiệu yêu cầu VPS reset lại đường truyền...");
+            } catch (Exception e) {
+                LOGGER.error("Lỗi khi tạo file flag cứu hộ WARP: ", e);
+            }
+        }
     }
 }

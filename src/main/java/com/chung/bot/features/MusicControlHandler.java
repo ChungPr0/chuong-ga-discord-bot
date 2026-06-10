@@ -11,14 +11,20 @@ import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import com.chung.bot.config.Config;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.Color;
 import java.util.List;
 import java.util.Objects;
 
 public class MusicControlHandler extends ListenerAdapter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MusicControlHandler.class);
 
     // ==========================================
     // PHẦN 1: TẠO VÀ CẬP NHẬT CONTROL PANEL CHÍNH
@@ -343,5 +349,19 @@ public class MusicControlHandler extends ListenerAdapter {
     private static String truncate(String text) {
         int max = 80;
         return text.length() > max ? text.substring(0, max - 3) + "..." : text;
+    }
+
+    @Override
+    public void onMessageReceived(@NotNull MessageReceivedEvent event) {
+        String musicChannelId = Config.get("MUSIC_CHANNEL_ID");
+        if (musicChannelId != null && event.getChannel().getId().equals(musicChannelId)) {
+            // Chỉ xóa tin nhắn của người dùng thường, giữ lại tin nhắn của Bot
+            if (!event.getAuthor().isBot()) {
+                event.getMessage().delete().queue(
+                        success -> {},
+                        error -> LOGGER.error("Không thể xóa tin nhắn không phải lệnh trong kênh nhạc: {}", error.getMessage())
+                );
+            }
+        }
     }
 }

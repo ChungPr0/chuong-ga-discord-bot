@@ -41,29 +41,25 @@ public class BotMain {
                     GatewayIntent.GUILD_MESSAGES,
                     GatewayIntent.MESSAGE_CONTENT,
                     GatewayIntent.GUILD_MESSAGE_REACTIONS,
-                    GatewayIntent.GUILD_VOICE_STATES
-            );
+                    GatewayIntent.GUILD_VOICE_STATES);
 
             // Cài đặt trạng thái hiển thị của bot
             builder.setStatus(OnlineStatus.ONLINE);
-            builder.setActivity(Activity.playing("Lùa Gà"));
-
-            // TODO: Thêm EventListener tại đây
+            builder.setActivity(Activity.playing("Bố Mày Đang Lùa Gà"));
+            
             builder.addEventListeners(
                     new WelcomeHandler(),
                     new RoleReactionHandler(),
                     new SlashCommandHandler(),
                     new MusicControlHandler(),
                     new VoiceStateListener(),
-                    new JoinToCreateHandler()
-            );
+                    new JoinToCreateHandler());
 
             DaveFactory daveFactory = new NativeDaveFactory();
 
             builder.setAudioModuleConfig(
                     new AudioModuleConfig()
-                            .withDaveSessionFactory(new LDJDADaveSessionFactory(daveFactory))
-            );
+                            .withDaveSessionFactory(new LDJDADaveSessionFactory(daveFactory)));
 
             net.dv8tion.jda.api.JDA jda = builder.build();
             // BẮT BUỘC CHỜ JDA KẾT NỐI XONG MỚI CẬP NHẬT LỆNH
@@ -79,15 +75,15 @@ public class BotMain {
             net.dv8tion.jda.api.entities.Guild guild = jda.getGuildById(guildId);
 
             if (guild != null) {
-                // XÓA VÀ CẬP NHẬT LẠI LỆNH CHO SERVER ĐỂ GHI ĐÈ LỆNH SERVER CŨ (Cập nhật ngay lập tức)
+                // XÓA VÀ CẬP NHẬT LẠI LỆNH CHO SERVER ĐỂ GHI ĐÈ LỆNH SERVER CŨ (Cập nhật ngay
+                // lập tức)
                 guild.updateCommands().addCommands(
                         // Lệnh /play kèm gợi ý (Option) bắt buộc nhập
                         Commands.slash("play", "Yêu cầu bot phát một bài nhạc")
                                 .addOption(OptionType.STRING, "query", "Nhập link YouTube hoặc tên bài hát", true),
 
                         // Lệnh /leave
-                        Commands.slash("leave", "Yêu cầu bot rời khỏi kênh thoại và dọn dẹp")
-                ).queue();
+                        Commands.slash("leave", "Yêu cầu bot rời khỏi kênh thoại và dọn dẹp")).queue();
                 LOGGER.info("Đã cập nhật bộ lệnh Slash cho server {}", guild.getName());
             }
 

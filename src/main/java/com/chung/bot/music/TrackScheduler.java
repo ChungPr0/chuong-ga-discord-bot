@@ -199,17 +199,16 @@ public class TrackScheduler extends AudioEventAdapter {
 
     @Override
     public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
-        if (currentChannel != null) {
-            currentChannel.sendMessage("Lỗi khi phát bài **" + track.getInfo().title + "**: " + exception.getMessage()).queue();
-        }
+        com.chung.bot.log.BotLogger.error("Lỗi Phát Nhạc (Track Exception)", 
+                "Lỗi khi phát bài **" + track.getInfo().title + "** (URL: " + track.getInfo().uri + ")", 
+                exception);
         nextTrack();
     }
 
     @Override
     public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
-        if (currentChannel != null) {
-            currentChannel.sendMessage("Bài hát **" + track.getInfo().title + "** bị treo. Đang chuyển bài tiếp theo...").queue();
-        }
+        com.chung.bot.log.BotLogger.warn("Bài hát bị treo (Track Stuck)", 
+                "Bài hát **" + track.getInfo().title + "** bị treo quá " + thresholdMs + "ms ở kênh thoại. Đang tự động chuyển bài tiếp theo...");
         nextTrack();
     }
 }

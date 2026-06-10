@@ -19,6 +19,7 @@ public class BotLogger {
     private static final Color COLOR_ERROR = new Color(231, 76, 60);   // Soft Alizarin Red
 
     private static JDA jda;
+    private static String channelId;
 
     /**
      * Khởi tạo BotLogger với instance JDA
@@ -26,7 +27,7 @@ public class BotLogger {
      */
     public static void init(JDA jdaInstance) {
         jda = jdaInstance;
-        LOGGER.info("BotLogger đã được khởi tạo thành công với JDA instance.");
+        channelId = Config.get("BOT_LOG_CHANNEL_ID");
     }
 
     /**
@@ -65,9 +66,7 @@ public class BotLogger {
             return;
         }
 
-        String channelId = Config.get("BOT_LOG_CHANNEL_ID");
         if (channelId == null || channelId.isEmpty()) {
-            LOGGER.error("Chưa cấu hình biến BOT_LOG_CHANNEL_ID trong file cấu hình/môi trường!");
             return;
         }
 
@@ -83,14 +82,16 @@ public class BotLogger {
             embed.setColor(color);
             embed.setTimestamp(OffsetDateTime.now());
 
+            String description;
+
             if (color == COLOR_ERROR) {
                 StringBuilder sb = new StringBuilder();
                 if (message != null && !message.isEmpty()) {
                     sb.append(message).append("\n\n");
                 }
                 if (throwable != null) {
-                    sb.append("**Chi tiết ngoại lệ:** `").append(throwable.toString()).append("`\n");
-                    sb.append("**Message:** ").append(throwable.getMessage()).append("\n\n");
+                    sb.append("**Chi tiết ngoại lệ:** `").append(throwable.getClass().getName()).append("`\n");
+                    sb.append("**Message:** ").append(throwable.getMessage() != null ? throwable.getMessage() : "null").append("\n\n");
                     sb.append("**Stack Trace (5 dòng đầu):**\n```java\n");
                     
                     StackTraceElement[] trace = throwable.getStackTrace();
@@ -105,10 +106,19 @@ public class BotLogger {
                 } else {
                     sb.append("Không cung cấp thông tin ngoại lệ.");
                 }
-                embed.setDescription(sb.toString());
+                description = sb.toString();
             } else {
-                embed.setDescription(message);
+                description = message;
             }
+
+            if (description != null && description.length() > 4000) {
+                description = description.substring(0, 3950) + "\n... [Bị cắt bớt do độ dài vượt quá giới hạn Discord]";
+                if (color == COLOR_ERROR) {
+                    description += "\n```";
+                }
+            }
+
+            embed.setDescription(description);
 
             channel.sendMessageEmbeds(embed.build()).queue(
                     success -> {},

@@ -72,11 +72,10 @@ public class JoinToCreateHandler extends ListenerAdapter {
         if (triggerChannel == null) return;
 
         long userId = member.getIdLong();
-        if (processingUsers.contains(userId)) {
+        if (!processingUsers.add(userId)) {
             LOGGER.info("[JTC] Người dùng {} đang trong quá trình tạo kênh/di chuyển, bỏ qua event", member.getEffectiveName());
             return;
         }
-        processingUsers.add(userId);
 
         Category category = triggerChannel.getParentCategory();
         String channelName = "┗ " + member.getEffectiveName();
