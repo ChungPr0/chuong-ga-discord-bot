@@ -97,6 +97,10 @@ public class PlayerManager {
 
             @Override
             public void loadFailed(FriendlyException exception) {
+                // Kiểm tra mức độ nghiêm trọng của lỗi
+                if (exception.severity == FriendlyException.Severity.COMMON) {
+                    return;
+                }
                 com.chung.bot.log.BotLogger.error("Lỗi Tải Nhạc (Music Load Failed)", 
                         "Không thể tải nhạc từ đường dẫn hoặc từ khóa: `" + trackUrl + "` ở Guild: " + (guild != null ? guild.getName() : "Không rõ"), 
                         exception);

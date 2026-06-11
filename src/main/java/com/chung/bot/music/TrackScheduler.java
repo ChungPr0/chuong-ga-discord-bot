@@ -21,6 +21,23 @@ public class TrackScheduler extends AudioEventAdapter {
     private MessageChannel currentChannel;
     private long lastMessageId = 0L;
     private long lastQueueMessageId = 0L;
+    
+    private String lastSentTrackIdentifier;
+
+    // Hàng đợi tuần tự hóa các hành động trên Control Panel để tránh Race Condition (nhân đôi tin nhắn)
+    private java.util.concurrent.CompletableFuture<Void> panelFuture = java.util.concurrent.CompletableFuture.completedFuture(null);
+
+    public synchronized void queuePanelTask(java.util.function.BiConsumer<TrackScheduler, java.util.concurrent.CompletableFuture<Void>> task) {
+        this.panelFuture = this.panelFuture.handle((v, ex) -> {
+            java.util.concurrent.CompletableFuture<Void> nextFuture = new java.util.concurrent.CompletableFuture<>();
+            try {
+                task.accept(this, nextFuture);
+            } catch (Exception e) {
+                nextFuture.complete(null);
+            }
+            return nextFuture;
+        }).thenCompose(f -> f);
+    }
 
     public TrackScheduler(AudioPlayer player) {
         this.player = player;
@@ -63,15 +80,20 @@ public class TrackScheduler extends AudioEventAdapter {
         }
     }
 
-    public void deleteControlMessage() {
-        if (currentChannel != null && lastMessageId != 0L) {
-            long idToDelete = lastMessageId;
-            lastMessageId = 0L;
-
-            currentChannel.deleteMessageById(idToDelete).queue(
-                    success -> {},
-                    error -> {}
-            );
+    public synchronized void deleteControlMessage() {
+        if (currentChannel != null) {
+            queuePanelTask((sched, future) -> {
+                long idToDelete = sched.getLastMessageId();
+                if (idToDelete != 0L) {
+                    sched.setLastMessageId(0L);
+                    currentChannel.deleteMessageById(idToDelete).queue(
+                            success -> future.complete(null),
+                            error -> future.complete(null)
+                    );
+                } else {
+                    future.complete(null);
+                }
+            });
         }
     }
 
@@ -166,6 +188,7 @@ public class TrackScheduler extends AudioEventAdapter {
         playlist.clear();
         currentIndex = 0;
         isRepeating = false;
+        lastSentTrackIdentifier = null; 
 
         deleteControlMessage();
         deleteQueueMessage();
@@ -175,7 +198,12 @@ public class TrackScheduler extends AudioEventAdapter {
     public void onTrackStart(AudioPlayer player, AudioTrack track) {
         deleteQueueMessage();
 
+        if (lastSentTrackIdentifier != null && lastSentTrackIdentifier.equals(track.getIdentifier())) {
+            return;
+        }
+
         if (currentChannel != null) {
+            lastSentTrackIdentifier = track.getIdentifier();
             MusicControlHandler.sendNewControlPanel(this, currentChannel, track);
         }
     }
@@ -188,6 +216,10 @@ public class TrackScheduler extends AudioEventAdapter {
 
         deleteQueueMessage();
 
+        if (lastSentTrackIdentifier != null && lastSentTrackIdentifier.equals(track.getIdentifier())) {
+            lastSentTrackIdentifier = null;
+        }
+
         if (endReason.mayStartNext) {
             if (isRepeating) {
                 player.startTrack(playlist.get(currentIndex).makeClone(), false);
@@ -199,6 +231,9 @@ public class TrackScheduler extends AudioEventAdapter {
 
     @Override
     public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
+        if (exception.severity == FriendlyException.Severity.COMMON) {
+            return;
+        }
         com.chung.bot.log.BotLogger.error("Lỗi Phát Nhạc (Track Exception)", 
                 "Lỗi khi phát bài **" + track.getInfo().title + "** (URL: " + track.getInfo().uri + ")", 
                 exception);

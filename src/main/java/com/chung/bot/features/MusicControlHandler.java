@@ -31,19 +31,21 @@ public class MusicControlHandler extends ListenerAdapter {
     // ==========================================
 
     public static void sendNewControlPanel(TrackScheduler scheduler, MessageChannel channel, AudioTrack track) {
-        long lastMessageId = scheduler.getLastMessageId();
-        if (lastMessageId != 0L) {
-            scheduler.setLastMessageId(0L);
-            channel.deleteMessageById(lastMessageId).queue(
-                    success -> performSend(scheduler, channel, track),
-                    error -> performSend(scheduler, channel, track)
-            );
-        } else {
-            performSend(scheduler, channel, track);
-        }
+        scheduler.queuePanelTask((sched, future) -> {
+            long lastMessageId = sched.getLastMessageId();
+            if (lastMessageId != 0L) {
+                sched.setLastMessageId(0L);
+                channel.deleteMessageById(lastMessageId).queue(
+                        success -> performSend(sched, channel, track, future),
+                        error -> performSend(sched, channel, track, future)
+                );
+            } else {
+                performSend(sched, channel, track, future);
+            }
+        });
     }
 
-    private static void performSend(TrackScheduler scheduler, MessageChannel channel, AudioTrack track) {
+    private static void performSend(TrackScheduler scheduler, MessageChannel channel, AudioTrack track, java.util.concurrent.CompletableFuture<Void> future) {
         boolean isPaused = scheduler.player.isPaused();
         boolean isLooping = scheduler.isRepeating;
         boolean noHistory = scheduler.currentIndex <= 0;
@@ -81,7 +83,16 @@ public class MusicControlHandler extends ListenerAdapter {
 
         channel.sendMessageEmbeds(embed.build())
                 .setComponents(row1, row2)
-                .queue(message -> scheduler.setLastMessageId(message.getIdLong()));
+                .queue(
+                    message -> {
+                        scheduler.setLastMessageId(message.getIdLong());
+                        future.complete(null);
+                    },
+                    error -> {
+                        com.chung.bot.log.BotLogger.error("Lỗi Music Control Panel", "Không thể gửi bảng điều khiển nhạc mới", error);
+                        future.complete(null);
+                    }
+                );
     }
 
     private void updateButtonUI(ButtonInteractionEvent event, TrackScheduler scheduler) {
@@ -359,7 +370,7 @@ public class MusicControlHandler extends ListenerAdapter {
             if (!event.getAuthor().isBot()) {
                 event.getMessage().delete().queue(
                         success -> {},
-                        error -> LOGGER.error("Không thể xóa tin nhắn không phải lệnh trong kênh nhạc: {}", error.getMessage())
+                        error -> com.chung.bot.log.BotLogger.error("Lỗi Kênh Nhạc", "Không thể xóa tin nhắn không phải lệnh trong kênh nhạc", error)
                 );
             }
         }
