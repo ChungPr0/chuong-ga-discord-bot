@@ -24,7 +24,6 @@ public class TrackScheduler extends AudioEventAdapter {
     
     private String lastSentTrackIdentifier;
 
-    // Hàng đợi tuần tự hóa các hành động trên Control Panel để tránh Race Condition (nhân đôi tin nhắn)
     private java.util.concurrent.CompletableFuture<Void> panelFuture = java.util.concurrent.CompletableFuture.completedFuture(null);
 
     public synchronized void queuePanelTask(java.util.function.BiConsumer<TrackScheduler, java.util.concurrent.CompletableFuture<Void>> task) {
