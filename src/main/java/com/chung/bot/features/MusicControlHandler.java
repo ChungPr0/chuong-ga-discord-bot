@@ -16,15 +16,11 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import com.chung.bot.config.Config;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.awt.Color;
 import java.util.List;
 import java.util.Objects;
 
 public class MusicControlHandler extends ListenerAdapter {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MusicControlHandler.class);
 
     // ==========================================
     // PHẦN 1: TẠO VÀ CẬP NHẬT CONTROL PANEL CHÍNH
