@@ -32,13 +32,17 @@ public class PlayerManager {
     private static PlayerManager INSTANCE;
     private final Map<Long, GuildMusicManager> musicManagers;
     private final AudioPlayerManager audioPlayerManager;
+    private final YoutubeAudioSourceManager ytSourceManager;
+
+    // CompletableFuture để lưu Device Code bắt được từ log
+    public static java.util.concurrent.CompletableFuture<String> deviceCodeFuture = null;
 
     public PlayerManager() {
         this.musicManagers = new HashMap<>();
         this.audioPlayerManager = new DefaultAudioPlayerManager();
 
         // KHỞI TẠO YOUTUBE PLUGIN
-        YoutubeAudioSourceManager ytSourceManager = new YoutubeAudioSourceManager(true, new Client[] {
+        this.ytSourceManager = new YoutubeAudioSourceManager(true, new Client[] {
             new Music(),
             new Web(),
             new Tv(),
@@ -55,7 +59,7 @@ public class PlayerManager {
             ytSourceManager.useOauth2(null, false);
         }
 
-        this.audioPlayerManager.registerSourceManager(ytSourceManager);
+        this.audioPlayerManager.registerSourceManager(this.ytSourceManager);
 
         // Chặn YouTube cũ của Lavaplayer để không đụng độ
         AudioSourceManagers.registerRemoteSources(
@@ -64,6 +68,59 @@ public class PlayerManager {
 
         // Đăng ký nguồn file local
         AudioSourceManagers.registerLocalSource(this.audioPlayerManager);
+    }
+
+    public void triggerYoutubeLogin() {
+        deviceCodeFuture = new java.util.concurrent.CompletableFuture<>();
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                this.ytSourceManager.useOauth2(null, false);
+            } catch (Exception e) {
+                LOGGER.error("Lỗi khi khởi chạy luồng OAuth YouTube: ", e);
+            }
+        });
+    }
+
+    public void updateYoutubeToken(String token) {
+        // 1. Cập nhật biến trong RAM để Config nhận diện ngay
+        com.chung.bot.config.Config.setYoutubeToken(token);
+
+        // 2. Ghi đè vào file .env trên đĩa để lưu vĩnh viễn
+        try {
+            java.nio.file.Path envPath = java.nio.file.Paths.get("/opt/discord-bot/.env");
+            if (!java.nio.file.Files.exists(envPath)) {
+                envPath = java.nio.file.Paths.get(".env"); // Fallback chạy local
+            }
+
+            if (java.nio.file.Files.exists(envPath)) {
+                java.util.List<String> lines = java.nio.file.Files.readAllLines(envPath);
+                boolean found = false;
+                for (int i = 0; i < lines.size(); i++) {
+                    if (lines.get(i).startsWith("YOUTUBE_OAUTH_REFRESH_TOKEN=")) {
+                        lines.set(i, "YOUTUBE_OAUTH_REFRESH_TOKEN=" + token);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    lines.add("YOUTUBE_OAUTH_REFRESH_TOKEN=" + token);
+                }
+                java.nio.file.Files.write(envPath, lines);
+                LOGGER.info("Đã lưu token mới vào file .env thành công.");
+            } else {
+                LOGGER.warn("Không tìm thấy file .env để ghi token.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("Lỗi khi ghi file .env: ", e);
+        }
+
+        // 3. Áp dụng ngay lập tức vào YoutubeAudioSourceManager
+        try {
+            this.ytSourceManager.useOauth2(token, true);
+            LOGGER.info("Đã nạp token mới cho YoutubeAudioSourceManager thành công.");
+        } catch (Exception e) {
+            LOGGER.error("Lỗi khi cấu hình token mới cho YoutubeAudioSourceManager: ", e);
+        }
     }
 
     public static PlayerManager getInstance() {

@@ -128,4 +128,36 @@ public class BotLogger {
             LOGGER.error("Lỗi ngoại lệ trong quá trình build/gửi log Discord: ", e);
         }
     }
+
+    /**
+     * Gửi tin nhắn embed trực tiếp lên Discord (Bỏ qua logger SLF4J để tránh vòng lặp vô hạn)
+     */
+    public static void sendDirectEmbed(String title, String message, Color color) {
+        if (jda == null) {
+            System.err.println("BotLogger chưa được khởi tạo JDA! Bỏ qua gửi direct log.");
+            return;
+        }
+
+        if (channelId == null || channelId.isEmpty()) {
+            return;
+        }
+
+        try {
+            TextChannel channel = jda.getTextChannelById(channelId);
+            if (channel == null) {
+                System.err.println("Không tìm thấy kênh Discord Log với ID: " + channelId);
+                return;
+            }
+
+            EmbedBuilder embed = new EmbedBuilder();
+            embed.setTitle(title);
+            embed.setColor(color);
+            embed.setDescription(message);
+            embed.setTimestamp(OffsetDateTime.now());
+
+            channel.sendMessageEmbeds(embed.build()).queue();
+        } catch (Exception e) {
+            System.err.println("Lỗi khi gửi direct log lên Discord: " + e.getMessage());
+        }
+    }
 }

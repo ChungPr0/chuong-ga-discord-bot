@@ -83,7 +83,10 @@ public class BotMain {
                                 .addOption(OptionType.STRING, "query", "Nhập link YouTube hoặc tên bài hát", true),
 
                         // Lệnh /leave
-                        Commands.slash("leave", "Yêu cầu bot rời khỏi kênh thoại và dọn dẹp")).queue();
+                        Commands.slash("leave", "Yêu cầu bot rời khỏi kênh thoại và dọn dẹp"),
+
+                        // Lệnh /login
+                        Commands.slash("login", "Khởi tạo luồng đăng nhập YouTube OAuth2 (chỉ dùng trong kênh botlog)")).queue();
                 LOGGER.info("Đã cập nhật bộ lệnh Slash cho server {}", guild.getName());
             }
 

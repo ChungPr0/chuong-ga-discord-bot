@@ -21,13 +21,15 @@ public class SlashCommandHandler extends ListenerAdapter {
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         String commandName = event.getName();
 
-        // KIỂM TRA ĐIỀU KIỆN KÊNH CHAT (TEXT CHANNEL)
-        String musicChannelId = Config.get("MUSIC_CHANNEL_ID");
-        if (musicChannelId != null && !event.getChannel().getId().equals(musicChannelId)) {
-            event.reply("Oops! Vui lòng vào kênh <#" + musicChannelId + "> để gọi lệnh nhạc nhé!")
-                    .setEphemeral(true)
-                    .queue();
-            return;
+        // KIỂM TRA ĐIỀU KIỆN KÊNH CHAT (TEXT CHANNEL) - CHỈ ÁP DỤNG CHO LỆNH NHẠC
+        if (commandName.equals("play") || commandName.equals("leave")) {
+            String musicChannelId = Config.get("MUSIC_CHANNEL_ID");
+            if (musicChannelId != null && !event.getChannel().getId().equals(musicChannelId)) {
+                event.reply("Oops! Vui lòng vào kênh <#" + musicChannelId + "> để gọi lệnh nhạc nhé!")
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
         }
 
         // Lấy trạng thái Voice của người dùng và của Bot
@@ -82,6 +84,38 @@ public class SlashCommandHandler extends ListenerAdapter {
 
                 event.reply("Bot đã rời khỏi kênh thoại và dọn dẹp bảng điều khiển!").queue();
                 LOGGER.info("User {} đã cho bot rời kênh.", event.getUser().getName());
+                break;
+
+            case "login":
+                String botLogChannelId = Config.get("BOT_LOG_CHANNEL_ID");
+                if (botLogChannelId == null || !event.getChannel().getId().equals(botLogChannelId)) {
+                    event.reply("Lệnh này chỉ có thể sử dụng tại kênh log của bot.").setEphemeral(true).queue();
+                    return;
+                }
+
+                // Trả lời trì hoãn (deferred) để có thêm thời gian chờ lấy code
+                event.deferReply(true).queue();
+
+                // Kích hoạt tiến trình lấy code đăng nhập mới
+                PlayerManager.getInstance().triggerYoutubeLogin();
+
+                try {
+                    // Chờ lấy mã đăng nhập từ Appender tối đa 2.5 giây
+                    String deviceCode = PlayerManager.deviceCodeFuture.get(2500, java.util.concurrent.TimeUnit.MILLISECONDS);
+
+                    net.dv8tion.jda.api.EmbedBuilder embed = new net.dv8tion.jda.api.EmbedBuilder();
+                    embed.setTitle("ĐĂNG NHẬP YOUTUBE OAUTH2");
+                    embed.setColor(new java.awt.Color(241, 196, 15)); // Sunflower Yellow
+                    embed.setDescription("Vui lòng thực hiện các bước sau để đăng nhập tài khoản YouTube của Bot:\n\n" +
+                            "1. Truy cập liên kết: [https://google.com/device](https://google.com/device)\n" +
+                            "2. Nhập mã code sau để xác thực: **" + deviceCode + "**\n\n" +
+                            "*Sau khi bạn hoàn tất đăng nhập trên trình duyệt, bot sẽ tự động bắt lấy token mới, cập nhật vào file `.env` trên VPS và kích hoạt nguồn nhạc ngay lập tức!*");
+
+                    event.getHook().sendMessageEmbeds(embed.build()).setEphemeral(true).queue();
+                } catch (Exception e) {
+                    event.getHook().sendMessage("Lỗi: Không lấy được mã đăng nhập YouTube kịp thời từ log. Vui lòng thử lại sau vài giây! (Chi tiết: " + e.getMessage() + ")")
+                            .setEphemeral(true).queue();
+                }
                 break;
 
             default:

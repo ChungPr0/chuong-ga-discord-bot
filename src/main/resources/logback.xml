@@ -1,0 +1,22 @@
+<configuration>
+    <!-- Ghi log ra Console -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Đăng ký DiscordAppender để chuyển tiếp log YouTube OAuth -->
+    <appender name="DISCORD" class="com.chung.bot.log.DiscordAppender" />
+
+    <!-- Cấu hình Root Logger ở mức INFO -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="DISCORD" />
+    </root>
+
+    <!-- Đặt Log level cho các package khác nhau -->
+    <logger name="net.dv8tion" level="INFO" />
+    <logger name="com.sedmelluq" level="INFO" />
+    <logger name="dev.lavalink.youtube" level="DEBUG" /> <!-- Đặt DEBUG để bắt log OAuth chi tiết -->
+</configuration>
