@@ -11,6 +11,12 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
+import dev.lavalink.youtube.clients.Music;
+import dev.lavalink.youtube.clients.Web;
+import dev.lavalink.youtube.clients.Tv;
+import dev.lavalink.youtube.clients.TvHtml5Simply;
+import dev.lavalink.youtube.clients.AndroidVr;
+import dev.lavalink.youtube.clients.skeleton.Client;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +38,13 @@ public class PlayerManager {
         this.audioPlayerManager = new DefaultAudioPlayerManager();
 
         // KHỞI TẠO YOUTUBE PLUGIN
-        YoutubeAudioSourceManager ytSourceManager = new YoutubeAudioSourceManager();
+        YoutubeAudioSourceManager ytSourceManager = new YoutubeAudioSourceManager(true, new Client[] {
+            new Music(),
+            new Web(),
+            new Tv(),
+            new TvHtml5Simply(),
+            new AndroidVr()
+        });
 
         String refreshToken = com.chung.bot.config.Config.get("YOUTUBE_OAUTH_REFRESH_TOKEN");
         if (refreshToken != null && !refreshToken.trim().isEmpty()) {
