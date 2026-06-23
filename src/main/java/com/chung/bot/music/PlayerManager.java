@@ -34,6 +34,15 @@ public class PlayerManager {
         // KHỞI TẠO YOUTUBE PLUGIN
         YoutubeAudioSourceManager ytSourceManager = new YoutubeAudioSourceManager();
 
+        String refreshToken = com.chung.bot.config.Config.get("YOUTUBE_OAUTH_REFRESH_TOKEN");
+        if (refreshToken != null && !refreshToken.trim().isEmpty()) {
+            com.chung.bot.log.BotLogger.info("HỆ THỐNG NHẠC", "Đăng nhập YouTube thành công!");
+            ytSourceManager.useOauth2(refreshToken, true);
+        } else {
+            com.chung.bot.log.BotLogger.warn("HỆ THỐNG NHẠC", "Chưa đăng nhập YouTube!");
+            ytSourceManager.useOauth2(null, false);
+        }
+
         this.audioPlayerManager.registerSourceManager(ytSourceManager);
 
         // Chặn YouTube cũ của Lavaplayer để không đụng độ
