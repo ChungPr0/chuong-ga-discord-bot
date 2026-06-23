@@ -55,11 +55,11 @@ public class PlayerManager {
 
         String refreshToken = com.chung.bot.config.Config.get("YOUTUBE_OAUTH_REFRESH_TOKEN");
         if (refreshToken != null && !refreshToken.trim().isEmpty()) {
-            com.chung.bot.log.BotLogger.info("HỆ THỐNG NHẠC", "Đăng nhập YouTube thành công!");
-            ytSourceManager.useOauth2(refreshToken, true);
+            LOGGER.info("Đăng nhập YouTube bằng token cấu hình sẵn.");
+            this.ytSourceManager.useOauth2(refreshToken, true);
         } else {
-            com.chung.bot.log.BotLogger.warn("HỆ THỐNG NHẠC", "Chưa đăng nhập YouTube!");
-            ytSourceManager.useOauth2(null, false);
+            LOGGER.warn("Chưa cấu hình token YouTube OAuth.");
+            this.ytSourceManager.useOauth2(null, false);
         }
 
         this.audioPlayerManager.registerSourceManager(this.ytSourceManager);
@@ -127,7 +127,7 @@ public class PlayerManager {
         }
     }
 
-    public static PlayerManager getInstance() {
+    public static synchronized PlayerManager getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new PlayerManager();
         }
