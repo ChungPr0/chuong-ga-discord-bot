@@ -36,6 +36,9 @@ public class PlayerManager {
 
     // CompletableFuture để lưu Device Code bắt được từ log
     public static java.util.concurrent.CompletableFuture<String> deviceCodeFuture = null;
+    
+    // Đánh dấu hành động đăng nhập do người dùng chủ động yêu cầu
+    public static boolean isUserTriggeredLogin = false;
 
     public PlayerManager() {
         this.musicManagers = new HashMap<>();
@@ -71,6 +74,7 @@ public class PlayerManager {
     }
 
     public void triggerYoutubeLogin() {
+        isUserTriggeredLogin = true; // Đánh dấu do người dùng chủ động gọi
         deviceCodeFuture = new java.util.concurrent.CompletableFuture<>();
         java.util.concurrent.CompletableFuture.runAsync(() -> {
             try {

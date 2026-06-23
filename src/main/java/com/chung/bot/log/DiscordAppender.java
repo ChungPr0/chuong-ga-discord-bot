@@ -33,12 +33,7 @@ public class DiscordAppender extends AppenderBase<ILoggingEvent> {
                     }
                 }
                 
-                // Gửi thông tin trực tiếp lên kênh Discord log
-                BotLogger.sendDirectEmbed(
-                    "🔑 YÊU CẦU ĐĂNG NHẬP YOUTUBE OAUTH",
-                    "Vui lòng thực hiện đăng nhập để kích hoạt tính năng phát nhạc:\n\n" + message,
-                    new Color(241, 196, 15) // Sunflower Yellow
-                );
+                // ĐÃ BỎ: Không gửi cảnh báo tự động màu vàng lên Discord nữa để tránh spam log
             } 
             // 2. Kiểm tra nếu đăng nhập thành công và trả về Refresh Token mới
             else if (message.contains("Token retrieved successfully") || message.contains("refresh token")) {
@@ -49,23 +44,19 @@ public class DiscordAppender extends AppenderBase<ILoggingEvent> {
                 }
 
                 if (extractedToken != null) {
-                    // Tự động ghi vào file .env và nạp cấu hình mới mà không cần reboot bot
+                    // Tự động ghi vào file .env và nạp cấu hình mới vào RAM
                     PlayerManager.getInstance().updateYoutubeToken(extractedToken);
                     
-                    // Gửi tin nhắn chứa token và xác nhận thành công lên Discord log
-                    BotLogger.sendDirectEmbed(
-                        "ĐĂNG NHẬP YOUTUBE THÀNH CÔNG",
-                        "Đã tự động bắt được Refresh Token mới và lưu vào file `.env` thành công!\n\n" +
-                        "**Token mới:**\n`" + extractedToken + "`",
-                        new Color(46, 204, 113) // Emerald Green
-                    );
-                } else {
-                    // Nếu không regex được cụ thể token, chỉ in log báo thành công
-                    BotLogger.sendDirectEmbed(
-                        "ĐĂNG NHẬP YOUTUBE THÀNH CÔNG",
-                        message,
-                        new Color(46, 204, 113)
-                    );
+                    // Chỉ gửi thông báo thành công lên Discord khi người dùng chủ động gọi lệnh /login
+                    if (PlayerManager.isUserTriggeredLogin) {
+                        BotLogger.sendDirectEmbed(
+                            "ĐĂNG NHẬP YOUTUBE THÀNH CÔNG",
+                            "Đã tự động bắt được Refresh Token mới và lưu vào file `.env` thành công!\n\n" +
+                            "**Token mới:**\n`" + extractedToken + "`",
+                            new Color(46, 204, 113) // Emerald Green
+                        );
+                        PlayerManager.isUserTriggeredLogin = false; // Reset flag
+                    }
                 }
             }
         }
