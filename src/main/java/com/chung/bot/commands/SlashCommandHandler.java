@@ -100,8 +100,8 @@ public class SlashCommandHandler extends ListenerAdapter {
                 PlayerManager.getInstance().triggerYoutubeLogin();
 
                 try {
-                    // Chờ lấy mã đăng nhập từ Appender tối đa 2.5 giây
-                    String deviceCode = PlayerManager.deviceCodeFuture.get(2500, java.util.concurrent.TimeUnit.MILLISECONDS);
+                    // Tăng thời gian chờ lấy mã đăng nhập từ Appender lên tối đa 8 giây (8000ms) để đề phòng mạng VPS chậm
+                    String deviceCode = PlayerManager.deviceCodeFuture.get(8000, java.util.concurrent.TimeUnit.MILLISECONDS);
 
                     net.dv8tion.jda.api.EmbedBuilder embed = new net.dv8tion.jda.api.EmbedBuilder();
                     embed.setTitle("ĐĂNG NHẬP YOUTUBE OAUTH2");
@@ -113,7 +113,11 @@ public class SlashCommandHandler extends ListenerAdapter {
 
                     event.getHook().sendMessageEmbeds(embed.build()).setEphemeral(true).queue();
                 } catch (Exception e) {
-                    event.getHook().sendMessage("Lỗi: Không lấy được mã đăng nhập YouTube kịp thời từ log. Vui lòng thử lại sau vài giây! (Chi tiết: " + e.getMessage() + ")")
+                    String errorDetail = e.getMessage();
+                    if (e instanceof java.util.concurrent.TimeoutException) {
+                        errorDetail = "Quá thời gian chờ (Timeout) kết nối tới Google OAuth. Có thể do kết nối mạng của VPS tới Google bị chậm hoặc bị nghẽn.";
+                    }
+                    event.getHook().sendMessage("Lỗi: Không lấy được mã đăng nhập YouTube kịp thời từ log. Vui lòng thử lại! (Chi tiết: " + errorDetail + ")")
                             .setEphemeral(true).queue();
                 }
                 break;
