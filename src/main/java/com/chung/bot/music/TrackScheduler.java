@@ -114,9 +114,15 @@ public class TrackScheduler extends AudioEventAdapter {
         }
         return queue;
     }
-
     public void jumpTo(int targetIndex) {
         if (targetIndex < 0 || targetIndex >= playlist.size()) {
+            return;
+        }
+
+        if (playlist.get(targetIndex) == null) {
+            if (currentChannel != null) {
+                currentChannel.sendMessage("Bài hát này chưa được tải xong, vui lòng thử lại sau.").queue();
+            }
             return;
         }
 
@@ -174,6 +180,9 @@ public class TrackScheduler extends AudioEventAdapter {
 
     public void nextTrack() {
         currentIndex++;
+        while (currentIndex < playlist.size() && playlist.get(currentIndex) == null) {
+            currentIndex++;
+        }
         if (currentIndex < playlist.size()) {
             player.startTrack(playlist.get(currentIndex).makeClone(), false);
         } else {
@@ -185,18 +194,23 @@ public class TrackScheduler extends AudioEventAdapter {
 
     public void previousTrack() {
         currentIndex--;
+        while (currentIndex >= 0 && playlist.get(currentIndex) == null) {
+            currentIndex--;
+        }
         if (currentIndex >= 0 && currentIndex < playlist.size()) {
             player.startTrack(playlist.get(currentIndex).makeClone(), false);
         } else {
             currentIndex = 0;
-            if (!playlist.isEmpty()) {
+            while (currentIndex < playlist.size() && playlist.get(currentIndex) == null) {
+                currentIndex++;
+            }
+            if (currentIndex < playlist.size()) {
                 player.startTrack(playlist.get(currentIndex).makeClone(), false);
             }
         }
 
         deleteQueueMessage();
     }
-
     public void stopAndCleanup() {
         player.stopTrack();
         if (!com.chung.bot.BotMain.isShuttingDown) {

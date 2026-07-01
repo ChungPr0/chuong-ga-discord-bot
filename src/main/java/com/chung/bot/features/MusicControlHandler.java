@@ -230,6 +230,11 @@ public class MusicControlHandler extends ListenerAdapter {
 
         for (int i = start; i < end; i++) {
             AudioTrack track = fullList.get(i);
+            if (track == null) {
+                embed.addField(String.format("⏳ Vị trí: `%d` | Thời lượng: `--:--`", i + 1), "Đang tải...", false);
+                menu.addOption((i + 1) + ". ⏳ Đang tải...", String.valueOf(i));
+                continue;
+            }
             long duration = track.getDuration() / 1000;
             String timeStr = String.format("%d:%02d", duration / 60, duration % 60);
 
@@ -293,6 +298,11 @@ public class MusicControlHandler extends ListenerAdapter {
 
         for (int i = start; i < end; i++) {
             AudioTrack track = fullList.get(i);
+            if (track == null) {
+                embed.addField(String.format("⏳ Vị trí: `%d` | Thời lượng: `--:--`", i + 1), "Đang tải...", false);
+                menu.addOption((i + 1) + ". ⏳ Đang tải...", String.valueOf(i));
+                continue;
+            }
             long duration = track.getDuration() / 1000;
             String timeStr = String.format("%d:%02d", duration / 60, duration % 60);
 

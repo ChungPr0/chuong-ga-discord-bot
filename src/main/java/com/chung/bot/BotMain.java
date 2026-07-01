@@ -44,6 +44,8 @@ public class BotMain {
                     LOGGER.info("Đang lưu hàng đợi nhạc trước khi shutdown...");
                     java.util.List<String> urls = com.chung.bot.music.PlayerManager.getInstance().getEntireQueueUrls();
                     com.chung.bot.database.DatabaseManager.getInstance().saveQueue(urls);
+                    int currentIndex = com.chung.bot.music.PlayerManager.getInstance().getFirstActiveQueueCurrentIndex();
+                    com.chung.bot.database.DatabaseManager.getInstance().saveMetadata("music_current_index", String.valueOf(currentIndex));
                 } catch (Exception e) {
                     LOGGER.error("Lỗi khi lưu hàng đợi nhạc trước khi shutdown: ", e);
                 }

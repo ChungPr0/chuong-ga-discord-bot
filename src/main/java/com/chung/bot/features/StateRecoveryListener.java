@@ -151,10 +151,21 @@ public class StateRecoveryListener extends ListenerAdapter {
         GuildMusicManager musicManager = pm.getMusicManager(guild);
         musicManager.scheduler.setChannel(textChannel);
 
-        pm.restoreQueue(guild, savedQueue, textChannel);
+        int targetIndex = 0;
+        String indexStr = db.getMetadata("music_current_index");
+        if (indexStr != null && !indexStr.isEmpty()) {
+            try {
+                targetIndex = Integer.parseInt(indexStr);
+            } catch (NumberFormatException e) {
+                LOGGER.error("[Recovery] Lỗi định dạng index khôi phục: ", e);
+            }
+        }
+
+        pm.restoreQueue(guild, savedQueue, targetIndex, textChannel);
 
         // Sau khi khôi phục xong, xóa sạch hàng đợi cũ trong SQLite DB để tránh trùng lặp
         db.saveQueue(null);
+        db.saveMetadata("music_current_index", null);
         LOGGER.info("[Recovery] Đã hồi sinh hàng đợi nhạc thành công và giải phóng DB.");
     }
 

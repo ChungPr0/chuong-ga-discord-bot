@@ -93,13 +93,7 @@ public class PlayerManager {
             TrackScheduler scheduler = manager.scheduler;
             if (scheduler != null) {
                 synchronized (scheduler) {
-                    // 1. Lấy bài đang phát hiện tại
-                    AudioTrack playing = scheduler.player.getPlayingTrack();
-                    if (playing != null && playing.getInfo() != null && playing.getInfo().uri != null) {
-                        urls.add(playing.getInfo().uri);
-                    }
-                    // 2. Lấy toàn bộ các bài đang xếp hàng phía sau
-                    for (AudioTrack track : scheduler.getQueue()) {
+                    for (AudioTrack track : scheduler.getFullList()) {
                         if (track != null && track.getInfo() != null && track.getInfo().uri != null) {
                             urls.add(track.getInfo().uri);
                         }
@@ -110,7 +104,17 @@ public class PlayerManager {
         return urls;
     }
 
-    public void restoreQueue(Guild guild, List<String> urls, MessageChannel textChannel) {
+    public synchronized int getFirstActiveQueueCurrentIndex() {
+        for (GuildMusicManager manager : musicManagers.values()) {
+            TrackScheduler scheduler = manager.scheduler;
+            if (scheduler != null) {
+                return scheduler.currentIndex;
+            }
+        }
+        return 0;
+    }
+
+    public void restoreQueue(Guild guild, List<String> urls, int targetIndex, MessageChannel textChannel) {
         if (urls == null || urls.isEmpty() || guild == null) return;
         GuildMusicManager musicManager = getMusicManager(guild);
         TrackScheduler scheduler = musicManager.scheduler;
@@ -118,54 +122,92 @@ public class PlayerManager {
         // 1. Kích hoạt chế độ khôi phục để chặn vẽ panel tự động
         scheduler.isRestoring = true;
         
+        // 2. Chuẩn bị playlist có kích thước bằng urls.size() với toàn null
+        synchronized (scheduler) {
+            scheduler.playlist.clear();
+            for (int i = 0; i < urls.size(); i++) {
+                scheduler.playlist.add(null);
+            }
+            // Set currentIndex bằng targetIndex (đảm bảo trong khoảng hợp lệ)
+            scheduler.currentIndex = Math.max(0, Math.min(targetIndex, urls.size() - 1));
+        }
+
         // Dùng AtomicInteger để đếm số lượng bài hát cần nạp
         java.util.concurrent.atomic.AtomicInteger remainingCount = new java.util.concurrent.atomic.AtomicInteger(urls.size());
         
-        for (String url : urls) {
+        // Xác định index bài hát hiện tại đang phát
+        int curIdx = scheduler.currentIndex;
+        
+        // Tạo thứ tự tải: bài hiện tại tải trước, sau đó tới các bài còn lại
+        List<Integer> loadOrder = new java.util.ArrayList<>();
+        loadOrder.add(curIdx);
+        for (int i = 0; i < urls.size(); i++) {
+            if (i != curIdx) {
+                loadOrder.add(i);
+            }
+        }
+        
+        for (int index : loadOrder) {
+            String url = urls.get(index);
+            final int targetPos = index;
+            
             this.audioPlayerManager.loadItemOrdered(musicManager, url, new AudioLoadResultHandler() {
                 private void checkCompletion() {
-                    // Khi nạp xong bài cuối cùng (thành công hay thất bại)
                     if (remainingCount.decrementAndGet() == 0) {
-                        scheduler.isRestoring = false; // Tắt chế độ khôi phục
-                        
-                        // Tiến hành gửi panel của bài đang phát hiện tại
-                        AudioTrack playing = scheduler.player.getPlayingTrack();
-                        if (playing != null && textChannel != null) {
-                            scheduler.setLastSentTrackIdentifier(playing.getIdentifier());
-                            MusicControlHandler.sendNewControlPanel(scheduler, textChannel, playing);
+                        scheduler.isRestoring = false; // Tắt chế độ khôi phục hoàn toàn
+                        LOGGER.info("[Recovery] Khôi phục toàn bộ hàng đợi hoàn tất.");
+                    }
+                }
+
+                private void handleLoadedTrack(AudioTrack track) {
+                    synchronized (scheduler) {
+                        if (targetPos < scheduler.playlist.size()) {
+                            scheduler.playlist.set(targetPos, track);
                         }
                     }
+                    
+                    // Nếu nạp thành công bài đang phát hiện tại, chạy và hiển thị panel ngay lập tức!
+                    if (targetPos == curIdx) {
+                        scheduler.player.startTrack(track.makeClone(), false);
+                        
+                        // Tạm thời tắt isRestoring để gửi panel lên Discord ngay
+                        scheduler.isRestoring = false;
+                        if (textChannel != null) {
+                            scheduler.setLastSentTrackIdentifier(track.getIdentifier());
+                            MusicControlHandler.sendNewControlPanel(scheduler, textChannel, track);
+                        }
+                        scheduler.isRestoring = true;
+                    }
+                    
+                    checkCompletion();
                 }
 
                 @Override
                 public void trackLoaded(AudioTrack track) {
-                    scheduler.queue(track);
-                    checkCompletion();
+                    handleLoadedTrack(track);
                 }
 
                 @Override
                 public void playlistLoaded(AudioPlaylist playlist) {
                     List<AudioTrack> tracks = playlist.getTracks();
                     if (!tracks.isEmpty()) {
-                        if (playlist.isSearchResult()) {
-                            scheduler.queue(tracks.get(0));
-                        } else {
-                            scheduler.queuePlaylist(tracks);
-                        }
+                        AudioTrack track = tracks.get(0); // chỉ lấy bài đầu tiên
+                        handleLoadedTrack(track);
+                    } else {
+                        checkCompletion();
                     }
-                    checkCompletion();
                 }
 
                 @Override
                 public void noMatches() {
-                    LOGGER.warn("Không tìm thấy bài hát khi khôi phục: {}", url);
+                    LOGGER.warn("[Recovery] Không tìm thấy bài hát khi khôi phục ở vị trí {}: {}", targetPos, url);
                     checkCompletion();
                 }
 
                 @Override
                 public void loadFailed(FriendlyException exception) {
                     com.chung.bot.log.BotLogger.error("Lỗi Khôi Phục Nhạc (Restore Music Failed)", 
-                            "Không thể tải lại bài hát khi khôi phục từ URL: `" + url + "` ở Guild: " + (guild != null ? guild.getName() : "Không rõ"), 
+                            "Không thể tải lại bài hát ở vị trí " + targetPos + " từ URL: `" + url + "`", 
                             exception);
                     checkCompletion();
                 }
