@@ -23,6 +23,7 @@ import com.chung.bot.log.BotLogger;
 
 public class BotMain {
     private static final Logger LOGGER = LoggerFactory.getLogger(BotMain.class);
+    public static boolean isShuttingDown = false;
 
     public static void main(String[] args) {
         String token = Config.get("DISCORD_TOKEN");
@@ -38,6 +39,7 @@ public class BotMain {
 
             // Shutdown hook để đóng database khi ứng dụng tắt
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                com.chung.bot.BotMain.isShuttingDown = true;
                 try {
                     LOGGER.info("Đang lưu hàng đợi nhạc trước khi shutdown...");
                     java.util.List<String> urls = com.chung.bot.music.PlayerManager.getInstance().getEntireQueueUrls();
@@ -125,10 +127,7 @@ public class BotMain {
                                 .addOption(OptionType.STRING, "query", "Nhập link YouTube hoặc tên bài hát", true),
 
                         // Lệnh /leave
-                        Commands.slash("leave", "Yêu cầu bot rời khỏi kênh thoại và dọn dẹp"),
-
-                        // Lệnh /login
-                        Commands.slash("login", "Khởi tạo luồng đăng nhập YouTube OAuth2 (chỉ dùng trong kênh botlog)")).queue();
+                        Commands.slash("leave", "Yêu cầu bot rời khỏi kênh thoại và dọn dẹp")).queue();
                 LOGGER.info("Đã cập nhật bộ lệnh Slash cho server {}", guild.getName());
             }
 

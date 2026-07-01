@@ -34,11 +34,7 @@ public class PlayerManager {
     private final AudioPlayerManager audioPlayerManager;
     private final YoutubeAudioSourceManager ytSourceManager;
 
-    // CompletableFuture để lưu Device Code bắt được từ log
-    public static java.util.concurrent.CompletableFuture<String> deviceCodeFuture = null;
-    
-    // Đánh dấu hành động đăng nhập do người dùng chủ động yêu cầu
-    public static boolean isUserTriggeredLogin = false;
+
 
     public PlayerManager() {
         this.musicManagers = new HashMap<>();
@@ -73,59 +69,7 @@ public class PlayerManager {
         AudioSourceManagers.registerLocalSource(this.audioPlayerManager);
     }
 
-    public void triggerYoutubeLogin() {
-        isUserTriggeredLogin = true; // Đánh dấu do người dùng chủ động gọi
-        deviceCodeFuture = new java.util.concurrent.CompletableFuture<>();
-        java.util.concurrent.CompletableFuture.runAsync(() -> {
-            try {
-                this.ytSourceManager.useOauth2(null, false);
-            } catch (Exception e) {
-                LOGGER.error("Lỗi khi khởi chạy luồng OAuth YouTube: ", e);
-            }
-        });
-    }
 
-    public void updateYoutubeToken(String token) {
-        // 1. Cập nhật biến trong RAM để Config nhận diện ngay
-        com.chung.bot.config.Config.setYoutubeToken(token);
-
-        // 2. Ghi đè vào file .env trên đĩa để lưu vĩnh viễn
-        try {
-            java.nio.file.Path envPath = java.nio.file.Paths.get("/opt/discord-bot/.env");
-            if (!java.nio.file.Files.exists(envPath)) {
-                envPath = java.nio.file.Paths.get(".env"); // Fallback chạy local
-            }
-
-            if (java.nio.file.Files.exists(envPath)) {
-                java.util.List<String> lines = java.nio.file.Files.readAllLines(envPath);
-                boolean found = false;
-                for (int i = 0; i < lines.size(); i++) {
-                    if (lines.get(i).startsWith("YOUTUBE_OAUTH_REFRESH_TOKEN=")) {
-                        lines.set(i, "YOUTUBE_OAUTH_REFRESH_TOKEN=" + token);
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    lines.add("YOUTUBE_OAUTH_REFRESH_TOKEN=" + token);
-                }
-                java.nio.file.Files.write(envPath, lines);
-                LOGGER.info("Đã lưu token mới vào file .env thành công.");
-            } else {
-                LOGGER.warn("Không tìm thấy file .env để ghi token.");
-            }
-        } catch (Exception e) {
-            LOGGER.error("Lỗi khi ghi file .env: ", e);
-        }
-
-        // 3. Áp dụng ngay lập tức vào YoutubeAudioSourceManager
-        try {
-            this.ytSourceManager.useOauth2(token, true);
-            LOGGER.info("Đã nạp token mới cho YoutubeAudioSourceManager thành công.");
-        } catch (Exception e) {
-            LOGGER.error("Lỗi khi cấu hình token mới cho YoutubeAudioSourceManager: ", e);
-        }
-    }
 
     public static synchronized PlayerManager getInstance() {
         if (INSTANCE == null) {
@@ -148,8 +92,13 @@ public class PlayerManager {
             TrackScheduler scheduler = manager.scheduler;
             if (scheduler != null) {
                 synchronized (scheduler) {
-                    for (int i = scheduler.currentIndex; i < scheduler.playlist.size(); i++) {
-                        AudioTrack track = scheduler.playlist.get(i);
+                    // 1. Lấy bài đang phát hiện tại
+                    AudioTrack playing = scheduler.player.getPlayingTrack();
+                    if (playing != null && playing.getInfo() != null && playing.getInfo().uri != null) {
+                        urls.add(playing.getInfo().uri);
+                    }
+                    // 2. Lấy toàn bộ các bài đang xếp hàng phía sau
+                    for (AudioTrack track : scheduler.getQueue()) {
                         if (track != null && track.getInfo() != null && track.getInfo().uri != null) {
                             urls.add(track.getInfo().uri);
                         }

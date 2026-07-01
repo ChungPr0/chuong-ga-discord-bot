@@ -85,6 +85,7 @@ public class TrackScheduler extends AudioEventAdapter {
                 long idToDelete = sched.getLastMessageId();
                 if (idToDelete != 0L) {
                     sched.setLastMessageId(0L);
+                    com.chung.bot.database.DatabaseManager.getInstance().saveMetadata("last_panel_message_id", null);
                     currentChannel.deleteMessageById(idToDelete).queue(
                             success -> future.complete(null),
                             error -> future.complete(null)
@@ -98,6 +99,14 @@ public class TrackScheduler extends AudioEventAdapter {
 
     public List<AudioTrack> getFullList() {
         return this.playlist;
+    }
+
+    public synchronized List<AudioTrack> getQueue() {
+        List<AudioTrack> queue = new ArrayList<>();
+        for (int i = currentIndex + 1; i < playlist.size(); i++) {
+            queue.add(playlist.get(i));
+        }
+        return queue;
     }
 
     public void jumpTo(int targetIndex) {
@@ -184,10 +193,12 @@ public class TrackScheduler extends AudioEventAdapter {
 
     public void stopAndCleanup() {
         player.stopTrack();
-        playlist.clear();
-        currentIndex = 0;
-        isRepeating = false;
-        lastSentTrackIdentifier = null; 
+        if (!com.chung.bot.BotMain.isShuttingDown) {
+            playlist.clear();
+            currentIndex = 0;
+            isRepeating = false;
+            lastSentTrackIdentifier = null; 
+        } 
 
         deleteControlMessage();
         deleteQueueMessage();

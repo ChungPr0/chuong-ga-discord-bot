@@ -82,6 +82,7 @@ public class MusicControlHandler extends ListenerAdapter {
                 .queue(
                     message -> {
                         scheduler.setLastMessageId(message.getIdLong());
+                        com.chung.bot.database.DatabaseManager.getInstance().saveMetadata("last_panel_message_id", String.valueOf(message.getIdLong()));
                         future.complete(null);
                     },
                     error -> {

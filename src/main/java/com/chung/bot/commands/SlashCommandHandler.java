@@ -86,42 +86,6 @@ public class SlashCommandHandler extends ListenerAdapter {
                 LOGGER.info("User {} đã cho bot rời kênh.", event.getUser().getName());
                 break;
 
-            case "login":
-                String botLogChannelId = Config.get("BOT_LOG_CHANNEL_ID");
-                if (botLogChannelId == null || !event.getChannel().getId().equals(botLogChannelId)) {
-                    event.reply("Lệnh này chỉ có thể sử dụng tại kênh log của bot.").setEphemeral(true).queue();
-                    return;
-                }
-
-                // Trả lời trì hoãn (deferred) để có thêm thời gian chờ lấy code
-                event.deferReply(true).queue();
-
-                // Kích hoạt tiến trình lấy code đăng nhập mới
-                PlayerManager.getInstance().triggerYoutubeLogin();
-
-                try {
-                    // Tăng thời gian chờ lấy mã đăng nhập từ Appender lên tối đa 8 giây (8000ms) để đề phòng mạng VPS chậm
-                    String deviceCode = PlayerManager.deviceCodeFuture.get(8000, java.util.concurrent.TimeUnit.MILLISECONDS);
-
-                    net.dv8tion.jda.api.EmbedBuilder embed = new net.dv8tion.jda.api.EmbedBuilder();
-                    embed.setTitle("ĐĂNG NHẬP YOUTUBE OAUTH2");
-                    embed.setColor(new java.awt.Color(241, 196, 15)); // Sunflower Yellow
-                    embed.setDescription("Vui lòng thực hiện các bước sau để đăng nhập tài khoản YouTube của Bot:\n\n" +
-                            "1. Truy cập liên kết: [https://google.com/device](https://google.com/device)\n" +
-                            "2. Nhập mã code sau để xác thực: **" + deviceCode + "**\n\n" +
-                            "*Sau khi bạn hoàn tất đăng nhập trên trình duyệt, bot sẽ tự động bắt lấy token mới, cập nhật vào file `.env` trên VPS và kích hoạt nguồn nhạc ngay lập tức!*");
-
-                    event.getHook().sendMessageEmbeds(embed.build()).setEphemeral(true).queue();
-                } catch (Exception e) {
-                    String errorDetail = e.getMessage();
-                    if (e instanceof java.util.concurrent.TimeoutException) {
-                        errorDetail = "Quá thời gian chờ (Timeout) kết nối tới Google OAuth. Có thể do kết nối mạng của VPS tới Google bị chậm hoặc bị nghẽn.";
-                    }
-                    event.getHook().sendMessage("Lỗi: Không lấy được mã đăng nhập YouTube kịp thời từ log. Vui lòng thử lại! (Chi tiết: " + errorDetail + ")")
-                            .setEphemeral(true).queue();
-                }
-                break;
-
             default:
                 event.reply("Lệnh không được hỗ trợ!").setEphemeral(true).queue();
         }

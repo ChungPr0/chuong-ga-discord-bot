@@ -60,9 +60,15 @@ public class DatabaseManager {
                 "track_url TEXT" +
                 ");";
 
+        String sqlMetadata = "CREATE TABLE IF NOT EXISTS bot_metadata (" +
+                "key TEXT PRIMARY KEY, " +
+                "value TEXT" +
+                ");";
+
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sqlTempChannels);
             stmt.execute(sqlMusicQueues);
+            stmt.execute(sqlMetadata);
             LOGGER.info("Khởi tạo cấu trúc các bảng SQLite thành công.");
         } catch (SQLException e) {
             LOGGER.error("Lỗi khi khởi tạo các bảng SQLite: ", e);
@@ -184,6 +190,39 @@ public class DatabaseManager {
         }
         return list;
     }
+
+    public synchronized void saveMetadata(String key, String value) {
+        String sql = "INSERT OR REPLACE INTO bot_metadata(key, value) VALUES(?, ?)";
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+            if (value == null) {
+                pstmt.setString(1, key);
+                pstmt.setNull(2, Types.VARCHAR);
+            } else {
+                pstmt.setString(1, key);
+                pstmt.setString(2, value);
+            }
+            pstmt.executeUpdate();
+            LOGGER.debug("Đã lưu metadata vào DB: {} = {}", key, value);
+        } catch (SQLException e) {
+            LOGGER.error("Lỗi khi lưu metadata vào DB: ", e);
+        }
+    }
+
+    public synchronized String getMetadata(String key) {
+        String sql = "SELECT value FROM bot_metadata WHERE key = ?";
+        try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
+            pstmt.setString(1, key);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("value");
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Lỗi khi lấy metadata từ DB: ", e);
+        }
+        return null;
+    }
+
 
     public synchronized void close() {
         if (connection != null) {

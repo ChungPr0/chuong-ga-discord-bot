@@ -109,6 +109,38 @@ public class StateRecoveryListener extends ListenerAdapter {
             return;
         }
 
+        // Lấy panel ID cũ từ DB và xóa trước khi nạp nhạc mới
+        String lastPanelIdStr = db.getMetadata("last_panel_message_id");
+        if (lastPanelIdStr != null && !lastPanelIdStr.isEmpty()) {
+            try {
+                long lastPanelId = Long.parseLong(lastPanelIdStr);
+                LOGGER.info("[Recovery] Phát hiện panel cũ ID: {}. Đang xóa để tránh trùng lặp...", lastPanelId);
+                
+                final VoiceChannel finalTargetVc = targetVc;
+                final TextChannel finalTxtChannel = textChannel;
+                
+                textChannel.deleteMessageById(lastPanelId).queue(
+                        success -> {
+                            LOGGER.info("[Recovery] Đã xóa panel cũ thành công.");
+                            db.saveMetadata("last_panel_message_id", null);
+                            proceedWithRestore(guild, finalTargetVc, finalTxtChannel, savedQueue, db);
+                        },
+                        error -> {
+                            LOGGER.warn("[Recovery] Không tìm thấy panel cũ hoặc đã bị xóa trước đó.");
+                            db.saveMetadata("last_panel_message_id", null);
+                            proceedWithRestore(guild, finalTargetVc, finalTxtChannel, savedQueue, db);
+                        }
+                );
+            } catch (Exception e) {
+                LOGGER.error("[Recovery] Lỗi khi chuyển đổi ID panel hoặc gửi yêu cầu xóa: ", e);
+                proceedWithRestore(guild, targetVc, textChannel, savedQueue, db);
+            }
+        } else {
+            proceedWithRestore(guild, targetVc, textChannel, savedQueue, db);
+        }
+    }
+
+    private void proceedWithRestore(Guild guild, VoiceChannel targetVc, TextChannel textChannel, List<String> savedQueue, DatabaseManager db) {
         LOGGER.info("[Recovery] Tiến hành kết nối bot vào kênh thoại '{}' và khôi phục hàng đợi nhạc...", targetVc.getName());
         
         // Mở kết nối âm thanh
