@@ -233,6 +233,7 @@ public class TrackScheduler extends AudioEventAdapter {
         com.chung.bot.log.BotLogger.error("Lỗi Phát Nhạc (Track Exception)", 
                 "Lỗi khi phát bài **" + track.getInfo().title + "** (URL: " + track.getInfo().uri + ")", 
                 exception);
+        PlayerManager.getInstance().checkAndTriggerWarpRescue(exception);
         nextTrack();
     }
 

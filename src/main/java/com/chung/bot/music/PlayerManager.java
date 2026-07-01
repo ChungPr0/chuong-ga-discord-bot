@@ -243,61 +243,60 @@ public class PlayerManager {
         });
     }
 
-    private void checkAndTriggerWarpRescue(FriendlyException exception) {
+    public void checkAndTriggerWarpRescue(FriendlyException exception) {
         if (exception == null) return;
         
         String msg = exception.getMessage();
         Throwable cause = exception.getCause();
-        boolean isNetworkError = false;
         
-        // 1. Kiểm tra qua tin nhắn exception
+        boolean isYoutubeBlock = false;
+        
+        // 1. Kiểm tra trực tiếp class name của exception/cause
+        if (exception.getClass().getName().contains("AllClientsFailedException") ||
+            (cause != null && cause.getClass().getName().contains("AllClientsFailedException"))) {
+            isYoutubeBlock = true;
+        }
+        
+        // 2. Kiểm tra qua tin nhắn exception
         if (msg != null) {
             String lowerMsg = msg.toLowerCase();
-            if (lowerMsg.contains("read timed out") || 
-                lowerMsg.contains("all clients failed to load") || 
-                lowerMsg.contains("connectexception") || 
-                lowerMsg.contains("timeoutexception")) {
-                isNetworkError = true;
+            if (lowerMsg.contains("this video requires login") || 
+                lowerMsg.contains("all clients failed to load")) {
+                isYoutubeBlock = true;
             }
         }
         
-        // 2. Kiểm tra nguyên nhân gốc (cause) nếu có
-        if (!isNetworkError && cause != null) {
+        // 3. Kiểm tra nguyên nhân gốc (cause) nếu có
+        if (cause != null) {
             String causeMsg = cause.getMessage();
             if (causeMsg != null) {
                 String lowerCause = causeMsg.toLowerCase();
-                if (lowerCause.contains("read timed out") || 
-                    lowerCause.contains("all clients failed to load") || 
-                    lowerCause.contains("connectexception") || 
-                    lowerCause.contains("timeoutexception")) {
-                    isNetworkError = true;
+                if (lowerCause.contains("this video requires login") || 
+                    lowerCause.contains("all clients failed to load")) {
+                    isYoutubeBlock = true;
                 }
-            }
-            String causeClassName = cause.getClass().getSimpleName();
-            if (causeClassName.contains("ConnectException") || causeClassName.contains("TimeoutException")) {
-                isNetworkError = true;
             }
         }
         
-        // 3. Nếu đúng lỗi mạng WARP, tạo file tín hiệu (Flag File) cứu hộ
-        if (isNetworkError) {
+        // 4. Xử lý tạo file tín hiệu (Flag File) xoay IP WARP
+        if (isYoutubeBlock) {
             try {
-                Path flagPath = Paths.get("/opt/discord-bot/warp_error.flag");
+                Path flagPath = Paths.get("/opt/discord-bot/warp_rotate.flag");
                 
                 // Đảm bảo thư mục cha tồn tại
-                if (!Files.exists(flagPath.getParent())) {
+                if (flagPath.getParent() != null && !Files.exists(flagPath.getParent())) {
                     Files.createDirectories(flagPath.getParent());
                 }
                 
                 if (!Files.exists(flagPath)) {
                     Files.createFile(flagPath);
-                    LOGGER.warn("Đã tạo file cứu hộ WARP thành công tại: {}", flagPath);
+                    LOGGER.warn("Đã tạo file cứu hộ xoay IP WARP tại: {}", flagPath);
                 }
                 
-                com.chung.bot.log.BotLogger.warn("HỆ THỐNG CỨU HỘ", 
-                        "Phát hiện lỗi mạng WARP. Đang gửi tín hiệu yêu cầu VPS reset lại đường truyền...");
+                com.chung.bot.log.BotLogger.warn("HỆ THỐNG MẠNG", 
+                        "Phát hiện YouTube chặn IP (Yêu cầu login). Đang tạo file cứu hộ để VPS tự động xoay IP WARP...");
             } catch (Exception e) {
-                LOGGER.error("Lỗi khi tạo file flag cứu hộ WARP: ", e);
+                LOGGER.error("Lỗi khi tạo file flag xoay IP WARP: ", e);
             }
         }
     }
