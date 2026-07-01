@@ -72,13 +72,16 @@ jobs:
             echo "BOT_LOG_CHANNEL_ID=$BOT_LOG_CHANNEL_ID" >> .env
             echo "YOUTUBE_OAUTH_REFRESH_TOKEN=$YOUTUBE_OAUTH_REFRESH_TOKEN" >> .env
 
+            sudo docker stop discord-bot-container || true
+            sudo docker rm discord-bot-container || true
             sudo docker build -t discord-bot-image .
-            sudo docker rm -f discord-bot-container || true
             sudo docker run -d \
               --name discord-bot-container \
               --env-file .env \
+              --dns 8.8.8.8 \
+              --dns 1.1.1.1 \
               -v /opt/discord-bot:/opt/discord-bot \
               --restart unless-stopped \
               discord-bot-image
             
-            sudo docker image prune -f
+            sudo docker system prune -a --volumes -f

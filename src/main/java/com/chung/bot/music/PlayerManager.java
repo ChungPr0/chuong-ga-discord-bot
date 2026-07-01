@@ -142,6 +142,62 @@ public class PlayerManager {
         });
     }
 
+    public synchronized List<String> getEntireQueueUrls() {
+        List<String> urls = new java.util.ArrayList<>();
+        for (GuildMusicManager manager : musicManagers.values()) {
+            TrackScheduler scheduler = manager.scheduler;
+            if (scheduler != null) {
+                synchronized (scheduler) {
+                    for (int i = scheduler.currentIndex; i < scheduler.playlist.size(); i++) {
+                        AudioTrack track = scheduler.playlist.get(i);
+                        if (track != null && track.getInfo() != null && track.getInfo().uri != null) {
+                            urls.add(track.getInfo().uri);
+                        }
+                    }
+                }
+            }
+        }
+        return urls;
+    }
+
+    public void restoreQueue(Guild guild, List<String> urls) {
+        if (urls == null || urls.isEmpty() || guild == null) return;
+        GuildMusicManager musicManager = getMusicManager(guild);
+        
+        for (String url : urls) {
+            this.audioPlayerManager.loadItemOrdered(musicManager, url, new AudioLoadResultHandler() {
+                @Override
+                public void trackLoaded(AudioTrack track) {
+                    musicManager.scheduler.queue(track);
+                }
+
+                @Override
+                public void playlistLoaded(AudioPlaylist playlist) {
+                    List<AudioTrack> tracks = playlist.getTracks();
+                    if (!tracks.isEmpty()) {
+                        if (playlist.isSearchResult()) {
+                            musicManager.scheduler.queue(tracks.get(0));
+                        } else {
+                            musicManager.scheduler.queuePlaylist(tracks);
+                        }
+                    }
+                }
+
+                @Override
+                public void noMatches() {
+                    LOGGER.warn("Không tìm thấy bài hát khi khôi phục: {}", url);
+                }
+
+                @Override
+                public void loadFailed(FriendlyException exception) {
+                    com.chung.bot.log.BotLogger.error("Lỗi Khôi Phục Nhạc (Restore Music Failed)", 
+                            "Không thể tải lại bài hát khi khôi phục từ URL: `" + url + "` ở Guild: " + (guild != null ? guild.getName() : "Không rõ"), 
+                            exception);
+                }
+            });
+        }
+    }
+
     public void loadAndPlay(MessageChannel channel, Guild guild, String trackUrl) {
         GuildMusicManager musicManager = getMusicManager(guild);
 
@@ -179,10 +235,6 @@ public class PlayerManager {
 
             @Override
             public void loadFailed(FriendlyException exception) {
-                // Kiểm tra mức độ nghiêm trọng của lỗi
-                if (exception.severity == FriendlyException.Severity.COMMON) {
-                    return;
-                }
                 com.chung.bot.log.BotLogger.error("Lỗi Tải Nhạc (Music Load Failed)", 
                         "Không thể tải nhạc từ đường dẫn hoặc từ khóa: `" + trackUrl + "` ở Guild: " + (guild != null ? guild.getName() : "Không rõ"), 
                         exception);

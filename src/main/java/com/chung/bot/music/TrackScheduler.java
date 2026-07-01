@@ -230,9 +230,6 @@ public class TrackScheduler extends AudioEventAdapter {
 
     @Override
     public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
-        if (exception.severity == FriendlyException.Severity.COMMON) {
-            return;
-        }
         com.chung.bot.log.BotLogger.error("Lỗi Phát Nhạc (Track Exception)", 
                 "Lỗi khi phát bài **" + track.getInfo().title + "** (URL: " + track.getInfo().uri + ")", 
                 exception);

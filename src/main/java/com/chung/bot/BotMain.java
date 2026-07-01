@@ -33,6 +33,22 @@ public class BotMain {
         }
 
         try {
+            // Khởi tạo Database SQLite
+            com.chung.bot.database.DatabaseManager.getInstance();
+
+            // Shutdown hook để đóng database khi ứng dụng tắt
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    LOGGER.info("Đang lưu hàng đợi nhạc trước khi shutdown...");
+                    java.util.List<String> urls = com.chung.bot.music.PlayerManager.getInstance().getEntireQueueUrls();
+                    com.chung.bot.database.DatabaseManager.getInstance().saveQueue(urls);
+                } catch (Exception e) {
+                    LOGGER.error("Lỗi khi lưu hàng đợi nhạc trước khi shutdown: ", e);
+                }
+                LOGGER.info("Đang đóng kết nối SQLite Database...");
+                com.chung.bot.database.DatabaseManager.getInstance().close();
+            }));
+
             JDABuilder builder = JDABuilder.createDefault(token);
 
             // Cấu hình Intent cho chức năng
@@ -68,6 +84,30 @@ public class BotMain {
             // Khởi tạo logger Discord
             BotLogger.init(jda);
 
+            // Đăng ký DiscordAppender programmatically bằng Java để tránh bị ghi đè file logback.xml trong file jar
+            try {
+                org.slf4j.ILoggerFactory factory = org.slf4j.LoggerFactory.getILoggerFactory();
+                if (factory instanceof ch.qos.logback.classic.LoggerContext) {
+                    ch.qos.logback.classic.LoggerContext context = (ch.qos.logback.classic.LoggerContext) factory;
+                    ch.qos.logback.classic.Logger rootLogger = context.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+
+                    com.chung.bot.log.DiscordAppender discordAppender = new com.chung.bot.log.DiscordAppender();
+                    discordAppender.setContext(context);
+                    discordAppender.setName("DISCORD_APPENDER_PROGRAMMATIC");
+                    discordAppender.start();
+
+                    rootLogger.addAppender(discordAppender);
+
+                    // Đặt mức log DEBUG cho youtube-source để thu được log OAuth2
+                    context.getLogger("dev.lavalink.youtube").setLevel(ch.qos.logback.classic.Level.DEBUG);
+                    LOGGER.info("Đã đăng ký DiscordAppender thành công thông qua mã Java.");
+                } else {
+                    LOGGER.warn("LoggerFactory không phải là Logback LoggerContext. Bỏ qua đăng ký DiscordAppender programmatically.");
+                }
+            } catch (Exception e) {
+                LOGGER.error("Lỗi khi đăng ký DiscordAppender programmatically: ", e);
+            }
+
             // XÓA TOÀN BỘ GLOBAL COMMAND CŨ TRÊN TOÀN DISCORD
             jda.updateCommands().queue();
 
@@ -75,6 +115,16 @@ public class BotMain {
             net.dv8tion.jda.api.entities.Guild guild = jda.getGuildById(guildId);
 
             if (guild != null) {
+                // Khôi phục hàng đợi nhạc từ SQLite
+                try {
+                    java.util.List<String> savedQueue = com.chung.bot.database.DatabaseManager.getInstance().getSavedQueue();
+                    if (!savedQueue.isEmpty()) {
+                        com.chung.bot.music.PlayerManager.getInstance().restoreQueue(guild, savedQueue);
+                        LOGGER.info("Đã khôi phục {} bài hát vào hàng đợi cho Guild: {}", savedQueue.size(), guild.getName());
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Lỗi khi khôi phục hàng đợi nhạc từ database: ", e);
+                }
                 // XÓA VÀ CẬP NHẬT LẠI LỆNH CHO SERVER ĐỂ GHI ĐÈ LỆNH SERVER CŨ (Cập nhật ngay
                 // lập tức)
                 guild.updateCommands().addCommands(

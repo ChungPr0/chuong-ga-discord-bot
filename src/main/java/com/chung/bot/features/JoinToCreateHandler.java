@@ -46,6 +46,20 @@ public class JoinToCreateHandler extends ListenerAdapter {
     private final String triggerChannelId = Config.get("CREATE_VOICE_CHANNEL_ID");
     private final String chickenRoleId = Config.get("CHICKEN_ROLE_ID");
 
+    public JoinToCreateHandler() {
+        // Load existing temp channels from SQLite
+        try {
+            var db = com.chung.bot.database.DatabaseManager.getInstance();
+            var saved = db.getAllTempChannelsWithOwner();
+            for (var entry : saved.entrySet()) {
+                channelOwners.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
+            }
+            LOGGER.info("[JTC] Đã khôi phục {} kênh tạm từ database.", saved.size());
+        } catch (Exception e) {
+            LOGGER.error("[JTC] Lỗi khôi phục kênh tạm từ database: ", e);
+        }
+    }
+
 
     // =========================================================================
     // PHẦN 1: XỬ LÝ SỰ KIỆN VOICE (TẠO KÊNH, DỌN RÁC, AUTO-TRANSFER)
@@ -86,6 +100,7 @@ public class JoinToCreateHandler extends ListenerAdapter {
 
         createAction.queue(newChannel -> {
                     channelOwners.put(newChannel.getId(), member.getId());
+                    com.chung.bot.database.DatabaseManager.getInstance().saveTempChannel(newChannel.getIdLong(), userId);
                     LOGGER.info("[JTC] Tạo kênh '{}' cho {}", channelName, member.getEffectiveName());
 
                     guild.moveVoiceMember(member, newChannel).queue(
@@ -114,6 +129,7 @@ public class JoinToCreateHandler extends ListenerAdapter {
         if (vc.getMembers().isEmpty()) {
             channelOwners.remove(channelId);
             panelMessages.remove(channelId);
+            com.chung.bot.database.DatabaseManager.getInstance().deleteTempChannel(vc.getIdLong());
             vc.delete().queue(
                     success -> LOGGER.info("[JTC] Đã xoá kênh trống: {}", vc.getName()),
                     error -> LOGGER.error("[JTC] Lỗi xoá kênh {}: {}", vc.getName(), error.getMessage())
@@ -134,6 +150,7 @@ public class JoinToCreateHandler extends ListenerAdapter {
             Member newOwner = remaining.get(0);
 
             channelOwners.put(channelId, newOwner.getId());
+            com.chung.bot.database.DatabaseManager.getInstance().saveTempChannel(vc.getIdLong(), newOwner.getIdLong());
             LOGGER.info("[JTC] Auto-transfer kênh {} từ {} sang {}",
                     vc.getName(), event.getMember().getEffectiveName(), newOwner.getEffectiveName());
 
@@ -561,6 +578,7 @@ public class JoinToCreateHandler extends ListenerAdapter {
         }
 
         channelOwners.put(channelId, targetUserId);
+        com.chung.bot.database.DatabaseManager.getInstance().saveTempChannel(Long.parseLong(channelId), Long.parseLong(targetUserId));
         LOGGER.info("[JTC] Chuyển quyền kênh {} từ {} sang {}",
                 channelId, owner.getEffectiveName(), target.getEffectiveName());
 
