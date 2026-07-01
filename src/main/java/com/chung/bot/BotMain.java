@@ -63,13 +63,15 @@ public class BotMain {
             builder.setStatus(OnlineStatus.ONLINE);
             builder.setActivity(Activity.playing("Bố Mày Đang Lùa Gà"));
             
+            JoinToCreateHandler joinToCreateHandler = new JoinToCreateHandler();
             builder.addEventListeners(
                     new WelcomeHandler(),
                     new RoleReactionHandler(),
                     new SlashCommandHandler(),
                     new MusicControlHandler(),
                     new VoiceStateListener(),
-                    new JoinToCreateHandler());
+                    joinToCreateHandler,
+                    new com.chung.bot.features.StateRecoveryListener(joinToCreateHandler));
 
             DaveFactory daveFactory = new NativeDaveFactory();
 
@@ -114,19 +116,9 @@ public class BotMain {
             String guildId = Config.get("GUILD_ID");
             net.dv8tion.jda.api.entities.Guild guild = jda.getGuildById(guildId);
 
-            if (guild != null) {
-                // Khôi phục hàng đợi nhạc từ SQLite
-                try {
-                    java.util.List<String> savedQueue = com.chung.bot.database.DatabaseManager.getInstance().getSavedQueue();
-                    if (!savedQueue.isEmpty()) {
-                        com.chung.bot.music.PlayerManager.getInstance().restoreQueue(guild, savedQueue);
-                        LOGGER.info("Đã khôi phục {} bài hát vào hàng đợi cho Guild: {}", savedQueue.size(), guild.getName());
-                    }
-                } catch (Exception e) {
-                    LOGGER.error("Lỗi khi khôi phục hàng đợi nhạc từ database: ", e);
-                }
-                // XÓA VÀ CẬP NHẬT LẠI LỆNH CHO SERVER ĐỂ GHI ĐÈ LỆNH SERVER CŨ (Cập nhật ngay
-                // lập tức)
+             if (guild != null) {
+                 // XÓA VÀ CẬP NHẬT LẠI LỆNH CHO SERVER ĐỂ GHI ĐÈ LỆNH SERVER CŨ (Cập nhật ngay
+                 // lập tức)
                 guild.updateCommands().addCommands(
                         // Lệnh /play kèm gợi ý (Option) bắt buộc nhập
                         Commands.slash("play", "Yêu cầu bot phát một bài nhạc")

@@ -638,4 +638,9 @@ public class JoinToCreateHandler extends ListenerAdapter {
                 ActionRow.of(kickBtn, transferBtn)
         ).queue();
     }
+
+    public void removeChannelInMemory(String channelId) {
+        channelOwners.remove(channelId);
+        panelMessages.remove(channelId);
+    }
 }
