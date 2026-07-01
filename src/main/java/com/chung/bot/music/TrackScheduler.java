@@ -24,6 +24,12 @@ public class TrackScheduler extends AudioEventAdapter {
     
     private String lastSentTrackIdentifier;
 
+    public boolean isRestoring = false;
+
+    public void setLastSentTrackIdentifier(String id) {
+        this.lastSentTrackIdentifier = id;
+    }
+
     private java.util.concurrent.CompletableFuture<Void> panelFuture = java.util.concurrent.CompletableFuture.completedFuture(null);
 
     public synchronized void queuePanelTask(java.util.function.BiConsumer<TrackScheduler, java.util.concurrent.CompletableFuture<Void>> task) {
@@ -207,6 +213,10 @@ public class TrackScheduler extends AudioEventAdapter {
     @Override
     public void onTrackStart(AudioPlayer player, AudioTrack track) {
         deleteQueueMessage();
+
+        if (isRestoring) {
+            return;
+        }
 
         if (lastSentTrackIdentifier != null && lastSentTrackIdentifier.equals(track.getIdentifier())) {
             return;

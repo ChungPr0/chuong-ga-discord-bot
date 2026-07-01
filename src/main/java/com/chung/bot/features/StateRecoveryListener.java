@@ -151,7 +151,7 @@ public class StateRecoveryListener extends ListenerAdapter {
         GuildMusicManager musicManager = pm.getMusicManager(guild);
         musicManager.scheduler.setChannel(textChannel);
 
-        pm.restoreQueue(guild, savedQueue);
+        pm.restoreQueue(guild, savedQueue, textChannel);
 
         // Sau khi khôi phục xong, xóa sạch hàng đợi cũ trong SQLite DB để tránh trùng lặp
         db.saveQueue(null);

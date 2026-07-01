@@ -9,6 +9,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import com.chung.bot.features.MusicControlHandler;
 
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import dev.lavalink.youtube.clients.Music;
@@ -109,15 +110,37 @@ public class PlayerManager {
         return urls;
     }
 
-    public void restoreQueue(Guild guild, List<String> urls) {
+    public void restoreQueue(Guild guild, List<String> urls, MessageChannel textChannel) {
         if (urls == null || urls.isEmpty() || guild == null) return;
         GuildMusicManager musicManager = getMusicManager(guild);
+        TrackScheduler scheduler = musicManager.scheduler;
+        
+        // 1. Kích hoạt chế độ khôi phục để chặn vẽ panel tự động
+        scheduler.isRestoring = true;
+        
+        // Dùng AtomicInteger để đếm số lượng bài hát cần nạp
+        java.util.concurrent.atomic.AtomicInteger remainingCount = new java.util.concurrent.atomic.AtomicInteger(urls.size());
         
         for (String url : urls) {
             this.audioPlayerManager.loadItemOrdered(musicManager, url, new AudioLoadResultHandler() {
+                private void checkCompletion() {
+                    // Khi nạp xong bài cuối cùng (thành công hay thất bại)
+                    if (remainingCount.decrementAndGet() == 0) {
+                        scheduler.isRestoring = false; // Tắt chế độ khôi phục
+                        
+                        // Tiến hành gửi panel của bài đang phát hiện tại
+                        AudioTrack playing = scheduler.player.getPlayingTrack();
+                        if (playing != null && textChannel != null) {
+                            scheduler.setLastSentTrackIdentifier(playing.getIdentifier());
+                            MusicControlHandler.sendNewControlPanel(scheduler, textChannel, playing);
+                        }
+                    }
+                }
+
                 @Override
                 public void trackLoaded(AudioTrack track) {
-                    musicManager.scheduler.queue(track);
+                    scheduler.queue(track);
+                    checkCompletion();
                 }
 
                 @Override
@@ -125,16 +148,18 @@ public class PlayerManager {
                     List<AudioTrack> tracks = playlist.getTracks();
                     if (!tracks.isEmpty()) {
                         if (playlist.isSearchResult()) {
-                            musicManager.scheduler.queue(tracks.get(0));
+                            scheduler.queue(tracks.get(0));
                         } else {
-                            musicManager.scheduler.queuePlaylist(tracks);
+                            scheduler.queuePlaylist(tracks);
                         }
                     }
+                    checkCompletion();
                 }
 
                 @Override
                 public void noMatches() {
                     LOGGER.warn("Không tìm thấy bài hát khi khôi phục: {}", url);
+                    checkCompletion();
                 }
 
                 @Override
@@ -142,6 +167,7 @@ public class PlayerManager {
                     com.chung.bot.log.BotLogger.error("Lỗi Khôi Phục Nhạc (Restore Music Failed)", 
                             "Không thể tải lại bài hát khi khôi phục từ URL: `" + url + "` ở Guild: " + (guild != null ? guild.getName() : "Không rõ"), 
                             exception);
+                    checkCompletion();
                 }
             });
         }
