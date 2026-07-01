@@ -72,6 +72,10 @@ jobs:
             echo "BOT_LOG_CHANNEL_ID=$BOT_LOG_CHANNEL_ID" >> .env
             echo "YOUTUBE_OAUTH_REFRESH_TOKEN=$YOUTUBE_OAUTH_REFRESH_TOKEN" >> .env
 
+            # Tạm thời cấu hình public DNS cho VPS để Docker daemon pull base image không bị timeout bởi DNS Tailscale
+            sudo cp /etc/resolv.conf /etc/resolv.conf.bak
+            echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" | sudo tee /etc/resolv.conf
+
             sudo docker stop discord-bot-container || true
             sudo docker rm discord-bot-container || true
             sudo docker build -t discord-bot-image .
@@ -84,4 +88,7 @@ jobs:
               --restart unless-stopped \
               discord-bot-image
             
+            # Khôi phục lại resolv.conf ban đầu của VPS
+            sudo mv /etc/resolv.conf.bak /etc/resolv.conf || true
+
             sudo docker system prune -a --volumes -f
