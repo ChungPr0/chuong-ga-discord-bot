@@ -56,6 +56,12 @@ REACTION_MESSAGE_ID=YOUR_REACTION_MESSAGE_ID
 # ID của vai trò (Role) sẽ cấp khi thả reaction (Ví dụ: Gà Con)
 CHICKEN_ROLE_ID=YOUR_CHICKEN_ROLE_ID
 
+# ID kênh hiển thị Bảng điều khiển hệ thống (Live System Monitor Panel)
+STATUS_CHANNEL_ID=YOUR_STATUS_CHANNEL_ID
+
+# Địa chỉ Beszel Hub API (Mặc định: http://localhost:8090)
+BESZEL_URL=http://localhost:8090
+
 # Đường dẫn lời mời tham gia máy chủ
 INVITE_LINK=https://discord.gg/your_invite_link
 ```

@@ -43,12 +43,14 @@ jobs:
           INVITE_LINK: ${{ secrets.INVITE_LINK }}
           REACTION_MESSAGE_ID: ${{ secrets.REACTION_MESSAGE_ID }}
           CHICKEN_ROLE_ID: ${{ secrets.CHICKEN_ROLE_ID }}
+          STATUS_CHANNEL_ID: ${{ secrets.STATUS_CHANNEL_ID }}
+          BESZEL_URL: ${{ secrets.BESZEL_URL }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT }}
-          envs: DISCORD_TOKEN,GUILD_ID,WELCOME_CHANNEL_ID,ROLES_CHANNEL_ID,CREATE_VOICE_CHANNEL_ID,INVITE_LINK,REACTION_MESSAGE_ID,CHICKEN_ROLE_ID
+          envs: DISCORD_TOKEN,GUILD_ID,WELCOME_CHANNEL_ID,ROLES_CHANNEL_ID,CREATE_VOICE_CHANNEL_ID,INVITE_LINK,REACTION_MESSAGE_ID,CHICKEN_ROLE_ID,STATUS_CHANNEL_ID,BESZEL_URL
           script: |
             cd /opt/discord-bot
             
@@ -60,6 +62,8 @@ jobs:
             echo "INVITE_LINK=$INVITE_LINK" >> .env
             echo "REACTION_MESSAGE_ID=$REACTION_MESSAGE_ID" >> .env
             echo "CHICKEN_ROLE_ID=$CHICKEN_ROLE_ID" >> .env
+            echo "STATUS_CHANNEL_ID=$STATUS_CHANNEL_ID" >> .env
+            echo "BESZEL_URL=$BESZEL_URL" >> .env
 
             docker stop discord-bot-container || true
             docker rm discord-bot-container || true
@@ -73,4 +77,4 @@ jobs:
               --restart unless-stopped \
               discord-bot-image
 
-            docker system prune -a --volumes -f
+            docker image prune -f
