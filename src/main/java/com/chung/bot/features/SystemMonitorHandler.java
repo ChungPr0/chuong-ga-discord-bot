@@ -40,7 +40,7 @@ public class SystemMonitorHandler {
         }
 
         LOGGER.info("Khởi chạy System Monitor Panel tự động cập nhật mỗi 60s cho kênh ID: {}", channelId);
-        scheduler.scheduleAtFixedRate(this::updateStatus, 5, 60, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::updateStatus, 3, 60, TimeUnit.SECONDS);
     }
 
     public void stop() {
@@ -91,7 +91,7 @@ public class SystemMonitorHandler {
 
     private MessageEmbed buildStatusEmbed(BeszelClient.BeszelMetrics beszelMetrics) {
         EmbedBuilder eb = new EmbedBuilder();
-        eb.setTitle("🖥️ BẢNG ĐIỀU KHIỂN HỆ THỐNG VPS & BOT");
+        eb.setTitle("BẢNG ĐIỀU KHIỂN HỆ THỐNG");
 
         double cpuPercent;
         double ramPercent;
@@ -101,14 +101,14 @@ public class SystemMonitorHandler {
         String dataSource;
 
         if (beszelMetrics.isAvailable()) {
-            dataSource = "🟢 Beszel Monitoring Hub (" + beszelMetrics.getSystemName() + ")";
+            dataSource = "Beszel Monitoring Hub (" + beszelMetrics.getSystemName() + ")";
             cpuPercent = beszelMetrics.getCpuPercent();
             ramPercent = beszelMetrics.getRamPercent();
             ramDetail = String.format("%.2f GB / %.2f GB", beszelMetrics.getRamUsedGb(), beszelMetrics.getRamTotalGb());
             diskPercent = beszelMetrics.getDiskPercent();
             diskDetail = String.format("%.2f GB / %.2f GB", beszelMetrics.getDiskUsedGb(), beszelMetrics.getDiskTotalGb());
         } else {
-            dataSource = "🟡 Java System Metrics (Fallback - Beszel Offline)";
+            dataSource = "Java System Metrics (Fallback - Beszel Offline)";
             cpuPercent = getFallbackCpu();
             
             OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
@@ -127,30 +127,24 @@ public class SystemMonitorHandler {
             diskDetail = String.format("%.2f GB / %.2f GB", usedDisk / 1073741824.0, totalDisk / 1073741824.0);
         }
 
-        Color statusColor = Color.GREEN;
-        if (cpuPercent > 85.0 || ramPercent > 85.0 || diskPercent > 90.0) {
-            statusColor = Color.RED;
-        } else if (cpuPercent > 70.0 || ramPercent > 70.0 || diskPercent > 75.0) {
-            statusColor = Color.YELLOW;
-        }
-        eb.setColor(statusColor);
+        eb.setColor(new Color(52, 73, 94)); // Sleek dark slate theme
 
         long uptimeSeconds = (System.currentTimeMillis() - startTime) / 1000;
         String uptimeStr = formatUptime(uptimeSeconds);
         long gatewayPing = jda.getGatewayPing();
 
-        eb.addField("⚡ CPU Usage", String.format("`%s` **%.1f%%**", getProgressBar(cpuPercent), cpuPercent), false);
-        eb.addField("🧠 RAM Usage", String.format("`%s` **%.1f%%** (%s)", getProgressBar(ramPercent), ramPercent, ramDetail), false);
-        eb.addField("💾 Disk Storage", String.format("`%s` **%.1f%%** (%s)", getProgressBar(diskPercent), diskPercent, diskDetail), false);
+        eb.addField("CPU Usage", String.format("`%s` **%.1f%%**", getProgressBar(cpuPercent), cpuPercent), false);
+        eb.addField("RAM Usage", String.format("`%s` **%.1f%%** (%s)", getProgressBar(ramPercent), ramPercent, ramDetail), false);
+        eb.addField("Disk Storage", String.format("`%s` **%.1f%%** (%s)", getProgressBar(diskPercent), diskPercent, diskDetail), false);
         
-        eb.addField("🤖 Trạng Thái Bot", String.format("🟢 Operational | Ping: `%d ms`", gatewayPing), true);
-        eb.addField("⏱️ Uptime", "`" + uptimeStr + "`", true);
+        eb.addField("Trạng Thái Bot", String.format("Operational | Ping: `%d ms`", gatewayPing), true);
+        eb.addField("Uptime", "`" + uptimeStr + "`", true);
 
         if (beszelMetrics.isAvailable() && beszelMetrics.getActiveContainers() > 0) {
-            eb.addField("📦 Docker Containers", String.format("`%d active`", beszelMetrics.getActiveContainers()), true);
+            eb.addField("Containers", String.format("`%d active`", beszelMetrics.getActiveContainers()), true);
         }
 
-        eb.addField("📡 Nguồn Dữ Liệu", "`" + dataSource + "`", false);
+        eb.addField("Nguồn Dữ Liệu", "`" + dataSource + "`", false);
 
         long nowEpoch = Instant.now().getEpochSecond();
         eb.setFooter("Tự động cập nhật mỗi 60s • Lần cuối cập nhật:");
@@ -171,7 +165,7 @@ public class SystemMonitorHandler {
     }
 
     private String getProgressBar(double percent) {
-        int totalBlocks = 10;
+        int totalBlocks = 16;
         int filled = (int) Math.round((percent / 100.0) * totalBlocks);
         filled = Math.max(0, Math.min(totalBlocks, filled));
 
@@ -180,7 +174,7 @@ public class SystemMonitorHandler {
             if (i < filled) {
                 sb.append("█");
             } else {
-                sb.append("░");
+                sb.append("-");
             }
         }
         sb.append("]");
