@@ -29,7 +29,6 @@ public class DatabaseManager {
 
     private void init() {
         try {
-            // Đảm bảo thư mục cha tồn tại
             File dbFile = new File("/opt/discord-bot/bot_data.db");
             File parentDir = dbFile.getParentFile();
             if (parentDir != null && !parentDir.exists()) {
@@ -38,7 +37,6 @@ public class DatabaseManager {
                 }
             }
 
-            // Nạp class Driver SQLite một cách tường minh
             Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection(DB_URL);
             LOGGER.info("Kết nối thành công đến database SQLite tại: {}", DB_URL);
@@ -55,11 +53,6 @@ public class DatabaseManager {
                 "owner_id INTEGER" +
                 ");";
 
-        String sqlMusicQueues = "CREATE TABLE IF NOT EXISTS music_queues (" +
-                "queue_order INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "track_url TEXT" +
-                ");";
-
         String sqlMetadata = "CREATE TABLE IF NOT EXISTS bot_metadata (" +
                 "key TEXT PRIMARY KEY, " +
                 "value TEXT" +
@@ -67,7 +60,6 @@ public class DatabaseManager {
 
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sqlTempChannels);
-            stmt.execute(sqlMusicQueues);
             stmt.execute(sqlMetadata);
             LOGGER.info("Khởi tạo cấu trúc các bảng SQLite thành công.");
         } catch (SQLException e) {
@@ -133,64 +125,6 @@ public class DatabaseManager {
         return map;
     }
 
-    public synchronized void saveQueue(List<String> urls) {
-        String deleteSql = "DELETE FROM music_queues";
-        String insertSql = "INSERT INTO music_queues(track_url) VALUES(?)";
-        Connection conn = null;
-        try {
-            conn = getConnection();
-            conn.setAutoCommit(false); // Bắt đầu transaction
-
-            try (Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(deleteSql);
-            }
-
-            if (urls != null && !urls.isEmpty()) {
-                try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
-                    for (String url : urls) {
-                        pstmt.setString(1, url);
-                        pstmt.addBatch();
-                    }
-                    pstmt.executeBatch();
-                }
-            }
-
-            conn.commit();
-            LOGGER.info("Đã lưu hàng đợi nhạc gồm {} bài hát vào DB.", urls == null ? 0 : urls.size());
-        } catch (SQLException e) {
-            LOGGER.error("Lỗi khi lưu hàng đợi nhạc vào DB: ", e);
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ex) {
-                    LOGGER.error("Lỗi rollback transaction: ", ex);
-                }
-            }
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                } catch (SQLException e) {
-                    LOGGER.error("Lỗi khôi phục autoCommit: ", e);
-                }
-            }
-        }
-    }
-
-    public synchronized List<String> getSavedQueue() {
-        List<String> list = new ArrayList<>();
-        String sql = "SELECT track_url FROM music_queues ORDER BY queue_order ASC";
-        try (PreparedStatement pstmt = getConnection().prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-            while (rs.next()) {
-                list.add(rs.getString("track_url"));
-            }
-        } catch (SQLException e) {
-            LOGGER.error("Lỗi khi lấy hàng đợi nhạc từ DB: ", e);
-        }
-        return list;
-    }
-
     public synchronized void saveMetadata(String key, String value) {
         String sql = "INSERT OR REPLACE INTO bot_metadata(key, value) VALUES(?, ?)";
         try (PreparedStatement pstmt = getConnection().prepareStatement(sql)) {
@@ -222,7 +156,6 @@ public class DatabaseManager {
         }
         return null;
     }
-
 
     public synchronized void close() {
         if (connection != null) {

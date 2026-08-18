@@ -13,14 +13,12 @@ public class RoleReactionHandler extends ListenerAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoleReactionHandler.class);
     private static final String TARGET_EMOJI = "✅";
 
-    // Khi người dùng THÊM Reaction
     @Override
     public void onMessageReactionAdd(@NotNull MessageReactionAddEvent event) {
         if (event.getUser() == null || event.getUser().isBot()) return;
 
         String targetMessageId = Config.get("REACTION_MESSAGE_ID");
 
-        // Kiểm tra đúng tin nhắn và đúng Emoji
         if (targetMessageId != null && event.getMessageId().equals(targetMessageId)) {
             if (event.getEmoji().getName().equals(TARGET_EMOJI)) {
 
@@ -37,7 +35,6 @@ public class RoleReactionHandler extends ListenerAdapter {
         }
     }
 
-    // Khi người dùng GỠ Reaction
     @Override
     public void onMessageReactionRemove(@NotNull MessageReactionRemoveEvent event) {
         String userId = event.getUserId();
