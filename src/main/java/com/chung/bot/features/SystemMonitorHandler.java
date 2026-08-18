@@ -95,37 +95,64 @@ public class SystemMonitorHandler {
 
         double cpuPercent;
         double ramPercent;
-        String ramDetail;
+        double ramUsedGb;
+        double ramTotalGb;
         double diskPercent;
-        String diskDetail;
-        String dataSource;
+        double diskUsedGb;
+        double diskTotalGb;
 
         if (beszelMetrics.isAvailable()) {
-            dataSource = "Beszel Monitoring Hub (" + beszelMetrics.getSystemName() + ")";
             cpuPercent = beszelMetrics.getCpuPercent();
             ramPercent = beszelMetrics.getRamPercent();
-            ramDetail = String.format("%.2f GB / %.2f GB", beszelMetrics.getRamUsedGb(), beszelMetrics.getRamTotalGb());
+            ramUsedGb = beszelMetrics.getRamUsedGb();
+            ramTotalGb = beszelMetrics.getRamTotalGb();
             diskPercent = beszelMetrics.getDiskPercent();
-            diskDetail = String.format("%.2f GB / %.2f GB", beszelMetrics.getDiskUsedGb(), beszelMetrics.getDiskTotalGb());
+            diskUsedGb = beszelMetrics.getDiskUsedGb();
+            diskTotalGb = beszelMetrics.getDiskTotalGb();
         } else {
-            dataSource = "Java System Metrics (Fallback - Beszel Offline)";
             cpuPercent = getFallbackCpu();
-            
             OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            long totalRam = osBean.getTotalMemorySize();
-            long freeRam = osBean.getFreeMemorySize();
-            long usedRam = totalRam - freeRam;
-            ramPercent = (double) usedRam / totalRam * 100.0;
-            ramDetail = String.format("%.2f GB / %.2f GB", usedRam / 1073741824.0, totalRam / 1073741824.0);
+            long totalRamBytes = osBean.getTotalMemorySize();
+            long freeRamBytes = osBean.getFreeMemorySize();
+            long usedRamBytes = totalRamBytes - freeRamBytes;
+            ramPercent = totalRamBytes > 0 ? (double) usedRamBytes / totalRamBytes * 100.0 : 0.0;
+            ramUsedGb = usedRamBytes / 1073741824.0;
+            ramTotalGb = totalRamBytes / 1073741824.0;
 
             File root = new File("/opt/discord-bot");
             if (!root.exists()) root = new File("/");
-            long totalDisk = root.getTotalSpace();
-            long freeDisk = root.getFreeSpace();
-            long usedDisk = totalDisk - freeDisk;
-            diskPercent = totalDisk > 0 ? (double) usedDisk / totalDisk * 100.0 : 0.0;
-            diskDetail = String.format("%.2f GB / %.2f GB", usedDisk / 1073741824.0, totalDisk / 1073741824.0);
+            long totalDiskBytes = root.getTotalSpace();
+            long freeDiskBytes = root.getFreeSpace();
+            long usedDiskBytes = totalDiskBytes - freeDiskBytes;
+            diskPercent = totalDiskBytes > 0 ? (double) usedDiskBytes / totalDiskBytes * 100.0 : 0.0;
+            diskUsedGb = usedDiskBytes / 1073741824.0;
+            diskTotalGb = totalDiskBytes / 1073741824.0;
         }
+
+        // Auto-calculate GB values if total size is missing or zero
+        if (ramTotalGb <= 0.0) {
+            try {
+                OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+                ramTotalGb = osBean.getTotalMemorySize() / 1073741824.0;
+            } catch (Exception ignored) {}
+        }
+        if (ramUsedGb <= 0.0 && ramPercent > 0.0 && ramTotalGb > 0.0) {
+            ramUsedGb = ramTotalGb * (ramPercent / 100.0);
+        }
+
+        if (diskTotalGb <= 0.0) {
+            try {
+                File root = new File("/opt/discord-bot");
+                if (!root.exists()) root = new File("/");
+                diskTotalGb = root.getTotalSpace() / 1073741824.0;
+            } catch (Exception ignored) {}
+        }
+        if (diskUsedGb <= 0.0 && diskPercent > 0.0 && diskTotalGb > 0.0) {
+            diskUsedGb = diskTotalGb * (diskPercent / 100.0);
+        }
+
+        String ramDetail = String.format("%.2f GB / %.2f GB", ramUsedGb, ramTotalGb);
+        String diskDetail = String.format("%.2f GB / %.2f GB", diskUsedGb, diskTotalGb);
 
         eb.setColor(new Color(52, 73, 94)); // Sleek dark slate theme
 
@@ -143,8 +170,6 @@ public class SystemMonitorHandler {
         if (beszelMetrics.isAvailable() && beszelMetrics.getActiveContainers() > 0) {
             eb.addField("Containers", String.format("`%d active`", beszelMetrics.getActiveContainers()), true);
         }
-
-        eb.addField("Nguồn Dữ Liệu", "`" + dataSource + "`", false);
 
         long nowEpoch = Instant.now().getEpochSecond();
         eb.setFooter("Tự động cập nhật mỗi 60s • Lần cuối cập nhật:");

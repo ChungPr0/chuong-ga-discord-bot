@@ -130,7 +130,6 @@ public class BeszelClient {
                 return metrics;
             }
 
-            // Thử đăng nhập lại nếu token hết hạn
             authToken = authenticate(baseUrl);
             metrics = queryBeszelRecords(baseUrl, authToken);
             if (metrics.isAvailable()) {
@@ -138,7 +137,7 @@ public class BeszelClient {
             }
         }
 
-        LOGGER.error("Không thể lấy dữ liệu từ Beszel API. Hãy kiểm tra BESZEL_USER và BESZEL_PASS trong .env");
+        LOGGER.error("Không thể lấy dữ liệu từ Beszel API.");
         return new BeszelMetrics(false);
     }
 
@@ -167,23 +166,7 @@ public class BeszelClient {
                         metrics.connectedUrl = baseUrl;
                         metrics.systemName = sys.optString("name", "VPS Host");
 
-                        if (sys.has("info")) {
-                            JSONObject info = sys.getJSONObject("info");
-                            metrics.cpuPercent = info.optDouble("cpu", 0.0);
-                            metrics.ramPercent = info.optDouble("mp", 0.0);
-                            metrics.ramUsedGb = info.optDouble("mu", 0.0);
-                            metrics.ramTotalGb = info.optDouble("m", 0.0);
-                            metrics.diskPercent = info.optDouble("dp", 0.0);
-                            metrics.diskUsedGb = info.optDouble("du", 0.0);
-                            metrics.diskTotalGb = info.optDouble("d", 0.0);
-                        }
-
-                        if (sys.has("stats")) {
-                            JSONObject stats = sys.getJSONObject("stats");
-                            if (stats.has("cpu")) metrics.cpuPercent = stats.optDouble("cpu", metrics.cpuPercent);
-                            if (stats.has("mp")) metrics.ramPercent = stats.optDouble("mp", metrics.ramPercent);
-                            if (stats.has("dp")) metrics.diskPercent = stats.optDouble("dp", metrics.diskPercent);
-                        }
+                        parseMetricsData(sys, metrics);
 
                         if (sys.has("containers")) {
                             JSONArray containers = sys.getJSONArray("containers");
@@ -193,7 +176,7 @@ public class BeszelClient {
                         LOGGER.info("Lấy dữ liệu Beszel thành công từ {}", baseUrl);
                         return metrics;
                     } else {
-                        LOGGER.warn("Beszel API tại {} trả về danh sách rỗng (Cần đăng nhập BESZEL_USER và BESZEL_PASS trong .env)", apiUrl);
+                        LOGGER.warn("Beszel API tại {} trả về danh sách rỗng (Cần đăng nhập BESZEL_USER và BESZEL_PASS)", apiUrl);
                     }
                 }
             } else {
@@ -204,5 +187,44 @@ public class BeszelClient {
         }
 
         return new BeszelMetrics(false);
+    }
+
+    private void parseMetricsData(JSONObject sys, BeszelMetrics metrics) {
+        extractFromObject(sys, metrics);
+
+        if (sys.has("info")) {
+            Object infoObj = sys.get("info");
+            if (infoObj instanceof JSONObject) {
+                extractFromObject((JSONObject) infoObj, metrics);
+            } else if (infoObj instanceof String && !((String) infoObj).isEmpty()) {
+                try {
+                    extractFromObject(new JSONObject((String) infoObj), metrics);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        if (sys.has("stats")) {
+            Object statsObj = sys.get("stats");
+            if (statsObj instanceof JSONObject) {
+                extractFromObject((JSONObject) statsObj, metrics);
+            } else if (statsObj instanceof String && !((String) statsObj).isEmpty()) {
+                try {
+                    extractFromObject(new JSONObject((String) statsObj), metrics);
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    private void extractFromObject(JSONObject obj, BeszelMetrics metrics) {
+        if (obj.has("cpu")) metrics.cpuPercent = obj.optDouble("cpu", metrics.cpuPercent);
+        if (obj.has("cp")) metrics.cpuPercent = obj.optDouble("cp", metrics.cpuPercent);
+
+        if (obj.has("mp")) metrics.ramPercent = obj.optDouble("mp", metrics.ramPercent);
+        if (obj.has("mu")) metrics.ramUsedGb = obj.optDouble("mu", metrics.ramUsedGb);
+        if (obj.has("m")) metrics.ramTotalGb = obj.optDouble("m", metrics.ramTotalGb);
+
+        if (obj.has("dp")) metrics.diskPercent = obj.optDouble("dp", metrics.diskPercent);
+        if (obj.has("du")) metrics.diskUsedGb = obj.optDouble("du", metrics.diskUsedGb);
+        if (obj.has("d")) metrics.diskTotalGb = obj.optDouble("d", metrics.diskTotalGb);
     }
 }
