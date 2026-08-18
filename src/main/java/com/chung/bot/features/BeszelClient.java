@@ -125,7 +125,7 @@ public class BeszelClient {
                     LOGGER.warn("Beszel API tại {} trả về HTTP status: {}", apiUrl, response.statusCode());
                 }
             } catch (Exception e) {
-                LOGGER.debug("Thử kết nối Beszel thất bại tại {}: {}", apiUrl, e.getMessage());
+                LOGGER.warn("Thử kết nối Beszel thất bại tại {}: {}", apiUrl, e.getMessage());
             }
         }
 
