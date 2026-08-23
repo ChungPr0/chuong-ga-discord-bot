@@ -6,6 +6,8 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,16 +72,58 @@ public class SystemMonitorHandler {
                 channel.retrieveMessageById(savedMsgId).queue(
                         msg -> msg.editMessageEmbeds(embed).queue(
                                 success -> LOGGER.debug("Đã cập nhật System Monitor Embed thành công."),
-                                error -> sendNewMessage(channel, embed)
+                                error -> handleMessageError(channel, embed, error)
                         ),
-                        error -> sendNewMessage(channel, embed)
+                        error -> handleMessageError(channel, embed, error)
                 );
             } else {
-                sendNewMessage(channel, embed);
+                findOrCreateStatusMessage(channel, embed);
             }
         } catch (Exception e) {
             LOGGER.error("Lỗi khi cập nhật System Monitor Panel: ", e);
         }
+    }
+
+    private void handleMessageError(TextChannel channel, MessageEmbed embed, Throwable error) {
+        if (isUnknownMessageError(error)) {
+            LOGGER.warn("Tin nhắn System Monitor (ID đã lưu) không còn tồn tại trên Discord. Đang tìm lại hoặc tạo mới...");
+            findOrCreateStatusMessage(channel, embed);
+        } else {
+            LOGGER.warn("Tạm thời không thể cập nhật tin nhắn System Monitor (lỗi mạng/API): {}", error.getMessage());
+        }
+    }
+
+    private boolean isUnknownMessageError(Throwable error) {
+        if (error instanceof ErrorResponseException ere) {
+            return ere.getErrorResponse() == ErrorResponse.UNKNOWN_MESSAGE;
+        }
+        return false;
+    }
+
+    private void findOrCreateStatusMessage(TextChannel channel, MessageEmbed embed) {
+        channel.getHistory().retrievePast(20).queue(messages -> {
+            for (var msg : messages) {
+                if (msg.getAuthor().getIdLong() == jda.getSelfUser().getIdLong() && !msg.getEmbeds().isEmpty()) {
+                    MessageEmbed e = msg.getEmbeds().get(0);
+                    if ("BẢNG ĐIỀU KHIỂN HỆ THỐNG".equals(e.getTitle())) {
+                        DatabaseManager.getInstance().saveMetadata("system_status_message_id", msg.getId());
+                        LOGGER.info("Đã tìm thấy tin nhắn System Monitor cũ trong kênh (ID: {}), tiến hành cập nhật.", msg.getId());
+                        msg.editMessageEmbeds(embed).queue(
+                                success -> LOGGER.debug("Đã cập nhật System Monitor Embed thành công."),
+                                error -> LOGGER.error("Lỗi khi cập nhật tin nhắn tìm thấy: ", error)
+                        );
+                        return;
+                    }
+                }
+            }
+            sendNewMessage(channel, embed);
+        }, error -> {
+            if (isUnknownMessageError(error)) {
+                sendNewMessage(channel, embed);
+            } else {
+                LOGGER.warn("Không thể lấy lịch sử tin nhắn kênh (lỗi mạng/API): {}", error.getMessage());
+            }
+        });
     }
 
     private void sendNewMessage(TextChannel channel, MessageEmbed embed) {
@@ -221,3 +265,4 @@ public class SystemMonitorHandler {
         }
     }
 }
+
