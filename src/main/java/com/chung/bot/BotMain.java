@@ -4,7 +4,6 @@ import com.chung.bot.commands.SlashCommandHandler;
 import com.chung.bot.config.Config;
 import com.chung.bot.features.JoinToCreateHandler;
 import com.chung.bot.features.RoleReactionHandler;
-import com.chung.bot.features.SystemMonitorHandler;
 import com.chung.bot.features.WelcomeHandler;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -16,7 +15,6 @@ import org.slf4j.LoggerFactory;
 public class BotMain {
     private static final Logger LOGGER = LoggerFactory.getLogger(BotMain.class);
     public static boolean isShuttingDown = false;
-    private static SystemMonitorHandler systemMonitorHandler;
 
     public static void main(String[] args) {
         String token = Config.get("DISCORD_TOKEN");
@@ -31,9 +29,6 @@ public class BotMain {
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 com.chung.bot.BotMain.isShuttingDown = true;
-                if (systemMonitorHandler != null) {
-                    systemMonitorHandler.stop();
-                }
                 LOGGER.info("Đang đóng kết nối SQLite Database...");
                 com.chung.bot.database.DatabaseManager.getInstance().close();
             }));
@@ -59,8 +54,6 @@ public class BotMain {
             net.dv8tion.jda.api.JDA jda = builder.build();
             jda.awaitReady();
 
-            systemMonitorHandler = new SystemMonitorHandler(jda);
-            systemMonitorHandler.start();
 
             jda.updateCommands().queue();
 
