@@ -44,15 +44,19 @@ public class BotMain {
 
             builder.setStatus(OnlineStatus.ONLINE);
             builder.setActivity(Activity.playing("Bố Mày Đang Lùa Gà"));
-            
+
+            JoinToCreateHandler joinToCreateHandler = new JoinToCreateHandler();
+
             builder.addEventListeners(
                     new WelcomeHandler(),
                     new RoleReactionHandler(),
                     new SlashCommandHandler(),
-                    new JoinToCreateHandler());
+                    joinToCreateHandler);
 
             net.dv8tion.jda.api.JDA jda = builder.build();
             jda.awaitReady();
+
+            joinToCreateHandler.cleanupEmptyChannels(jda);
 
 
             jda.updateCommands().queue();

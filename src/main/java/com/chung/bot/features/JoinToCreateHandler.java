@@ -21,14 +21,18 @@ import net.dv8tion.jda.api.components.textinput.TextInput;
 import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.components.label.Label;
 import net.dv8tion.jda.api.modals.Modal;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.events.session.ReadyEvent;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.Color;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class JoinToCreateHandler extends ListenerAdapter {
@@ -38,6 +42,7 @@ public class JoinToCreateHandler extends ListenerAdapter {
     private final ConcurrentHashMap<String, String> channelOwners = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> panelMessages = new ConcurrentHashMap<>();
     private final Set<Long> processingUsers = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean cleanedUp = new AtomicBoolean(false);
 
     private final String triggerChannelId = Config.get("CREATE_VOICE_CHANNEL_ID");
     private final String chickenRoleId = Config.get("CHICKEN_ROLE_ID");
@@ -52,6 +57,82 @@ public class JoinToCreateHandler extends ListenerAdapter {
             LOGGER.info("[JTC] Đã khôi phục {} kênh tạm từ database.", saved.size());
         } catch (Exception e) {
             LOGGER.error("[JTC] Lỗi khôi phục kênh tạm từ database: ", e);
+        }
+    }
+
+    @Override
+    public void onReady(@NotNull ReadyEvent event) {
+        cleanupEmptyChannels(event.getJDA());
+    }
+
+    public void cleanupEmptyChannels(JDA jda) {
+        if (!cleanedUp.compareAndSet(false, true)) {
+            return;
+        }
+
+        try {
+            VoiceChannel triggerChannel = jda.getVoiceChannelById(triggerChannelId);
+            if (triggerChannel == null) {
+                LOGGER.warn("[JTC Auto-cleanup] Không tìm thấy kênh voice tạo phòng với ID: {}", triggerChannelId);
+                return;
+            }
+
+            Category category = triggerChannel.getParentCategory();
+            List<VoiceChannel> voiceChannels = (category != null)
+                    ? category.getVoiceChannels()
+                    : triggerChannel.getGuild().getVoiceChannels();
+
+            LOGGER.info("[JTC Auto-cleanup] Bắt đầu quét các kênh voice để dọn dẹp phòng trống tồn đọng (vùng quét: {})...",
+                    (category != null ? "Category '" + category.getName() + "'" : "Toàn bộ server"));
+
+            int cleanedCount = 0;
+            for (VoiceChannel vc : voiceChannels) {
+                if (vc.getId().equals(triggerChannelId)) {
+                    continue;
+                }
+
+                if (category == null && !channelOwners.containsKey(vc.getId())) {
+                    continue;
+                }
+
+                if (vc.getMembers().isEmpty()) {
+                    String channelId = vc.getId();
+                    long channelIdLong = vc.getIdLong();
+                    String channelName = vc.getName();
+
+                    channelOwners.remove(channelId);
+                    panelMessages.remove(channelId);
+                    try {
+                        com.chung.bot.database.DatabaseManager.getInstance().deleteTempChannel(channelIdLong);
+                    } catch (Exception dbEx) {
+                        LOGGER.warn("[JTC Auto-cleanup] Lỗi xóa kênh khỏi database {}: {}", channelId, dbEx.getMessage());
+                    }
+
+                    try {
+                        vc.delete().queue(
+                                success -> LOGGER.info("[JTC Auto-cleanup] Đã xóa kênh thoại trống: {} ({})", channelName, channelId),
+                                error -> LOGGER.warn("[JTC Auto-cleanup] Không thể xóa kênh {} ({}): {}", channelName, channelId, error.getMessage())
+                        );
+                        cleanedCount++;
+                    } catch (Exception ex) {
+                        LOGGER.warn("[JTC Auto-cleanup] Không thể thực hiện lệnh xóa kênh {}: {}", channelName, ex.getMessage());
+                    }
+                }
+            }
+
+            for (String savedId : new HashSet<>(channelOwners.keySet())) {
+                if (jda.getVoiceChannelById(savedId) == null) {
+                    channelOwners.remove(savedId);
+                    panelMessages.remove(savedId);
+                    try {
+                        com.chung.bot.database.DatabaseManager.getInstance().deleteTempChannel(Long.parseLong(savedId));
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            LOGGER.info("[JTC Auto-cleanup] Quét hoàn tất. Đã phát hiện và phát lệnh xóa {} kênh thoại trống.", cleanedCount);
+        } catch (Exception e) {
+            LOGGER.error("[JTC Auto-cleanup] Ngoại lệ khi dọn dẹp kênh voice lúc khởi động: ", e);
         }
     }
 
